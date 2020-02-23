@@ -1,2 +1,1 @@
-# 2020Talks
-Speaker materials for 2020 conference
+Use this repository to upload your presentation files including any code, data (if small), markdown, etc.
