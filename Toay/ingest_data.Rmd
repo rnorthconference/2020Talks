@@ -1,0 +1,103 @@
+---
+title: "Ingest Data"
+author: "Alyssa Toay"
+date: "5/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(pins)
+library(lubridate)
+library(caTools)
+```
+
+# Connections
+
+```{r connections}
+# register board when multiple servers are available
+pins::board_register_rsconnect(server = "rs-connect-d.com")
+```
+
+# Get Data
+
+```{r get_data}
+# read csv with king county house prices
+df <- read.csv(file = "data/king_county_house_price.csv",
+               stringsAsFactors = FALSE)
+
+# look at first 6 rows
+head(df)
+
+# summary of df
+summary(df)
+
+# check for missing data
+sapply(df, function(x) sum(is.na(x)))
+
+# check for duplicated values
+any(duplicated(df))
+ 
+```
+
+# Clean Data 
+```{r clean_data}
+
+df <- df %>%
+  # select the columns we want to build a model on
+  select(id, lat, long, bedrooms, bathrooms,
+         sqft_living, floors, price) %>%
+  # filter out outliers
+  filter(bedrooms <= 10 &
+         sqft_living <= 13000 &
+         bathrooms <= 6) %>%
+  # convert columns types
+  mutate(
+    bedrooms = as.factor(bedrooms),
+    bathrooms = as.factor(bathrooms),
+    sqft_living = as.numeric(sqft_living),
+    floors = as.factor(floors)
+  )
+
+
+```
+# Split Data into Train and Test
+
+```{r split_data}
+# set seed
+set.seed(100)
+
+# Sample data with 80/20 split
+sample <- sample.int(n = nrow(df),
+                     size = floor(.8 * nrow(df)),
+                     replace = F)
+
+# Split training data
+train <- df[sample,]
+
+# Split testing data
+test  <- df[-sample,] %>% 
+  select(-price)
+
+
+ 
+```
+
+# Pin Data to RStudio Connect
+```{r pin}
+
+# Pin training data on board
+pin(train,
+    "house_train_data",
+    description = "House Price Training Data",
+    board = "rsconnect")
+
+# Pin test data on board for shiny app
+pin(test,
+    "house_test_data",
+    description = "House Price Test Data",
+    board = "rsconnect")
+
+```
+

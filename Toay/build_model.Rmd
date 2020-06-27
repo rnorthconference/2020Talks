@@ -1,0 +1,47 @@
+---
+title: "Build Cars Model"
+author: "Alyssa Toay"
+date: "6/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(pins)
+
+```
+
+
+# Get Data
+```{r data}
+
+# register board when multiple servers are available
+pins::board_register_rsconnect(server = "rs-connect-d.com")
+
+# get training data from RStudio Connect
+train <- pins::pin_get("house_train_data",
+                       board = "rsconnect")
+
+```
+
+# Train Model
+```{r model_training}
+# train model with linear regression
+model <- lm(price ~ bedrooms + bathrooms + sqft_living + floors,
+            data = train)
+# model details
+summary(model)
+
+```
+
+# Pin Model
+```{r pin}
+
+# save model as pin
+pin(model,
+    "house_model",
+    description = "House Price Model Object",
+    board = "rsconnect")
+
+```
