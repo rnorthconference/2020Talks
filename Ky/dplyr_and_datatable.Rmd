@@ -1,0 +1,126 @@
+---
+title: "dplyr + data.table = dtplyr?"
+author: "Kim Eng Ky"
+subtitle: "(kykimeng.com)"
+date: "July 15, 2020"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: xaringan-themer.css
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r xaringan-themer, include = FALSE}
+library(xaringanthemer)
+mono_light(
+  base_color = "#000099",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "500", "500i"),
+  code_font_google   = google_font("Droid Mono"),
+  text_font_size = '24px',
+  code_highlight_color = "#FFFFFF"
+)
+```
+
+# `dplyr`
+
+- `mutate()` adds new variables that are functions of existing variables
+- `select()` picks variables based on their names
+- `filter()` picks cases based on their values
+- `summarise()` reduces multiple values down to a single summary
+- `arrange()` changes the ordering of the rows
+- `group_by()` performs operations by group
+
+---
+
+# Example:
+
+```
+library(dplyr)
+
+starwars %>%
+  group_by(species) %>%
+  summarise(n = n(),
+            mass = mean(mass, na.rm = TRUE)) %>%
+  filter(n > 1,
+         mass > 50)
+```
+
+---
+
+# Why `dplyr`?
+
+- faster than base R
+- simple syntax and beginner-friendly
+- function chaining 
+- direct connection to and analysis within external databases
+
+---
+
+# `data.table`
+
+"`data.table` is an R package that provides an enhanced version of `data.frames`." 
+
+- faster
+- memory efficient 
+- concise syntax
+
+---
+
+# Example
+
+```
+library(data.table)
+
+starwars_dt <- as.data.table(starwars)
+starwars_dt[, .(n = .N, 
+                mass = mean(mass, na.rm = TRUE)),
+              .(species)][n > 1 & mass > 50]
+```
+
+---
+
+# What is `dtplyr`?
+
+- "`dtplyr` provides a `data.table` backend for `dplyr`." 
+- Same syntax as `dplyr` with the speed of `data.table` (not quite)
+
+---
+
+# Speed Test
+
+Read in data (2 million rows):
+- base `R` (`utils::read.csv("example_dataset.csv")`): 21.65 seconds
+- `tidyverse` (`readr::read_csv("example_dataset.csv")`): 8.835 seconds
+- `data.table` (`data.table::fread("example_dataset.csv")`): 2.279 seconds
+
+---
+
+# Speed Test
+
+Manipulate:
+- `dplyr` (`df %>% group_by(x) %>% summarise(n = n()) %>% filter(n > 100)`): 0.17 seconds
+- `dtplyr`: 0.11 seconds
+- `data.table` (`dt[, .(n = .N), x][n > 100]`): 0.07 seconds
+
+---
+
+# Why is `dtplyr` slower than `data.table`?
+
+- time it takes to translate `dplyr` syntax to `data.table`; negligible for large datasets
+- some `data.table` expressions have no direct `dplyr` equivalent (e.g. rolling join)
+- `mutate()` makes a copy before modifying while `data.table` does not and `data.table` sub-assigns by reference
+
+---
+
+# References
+
+- https://dtplyr.tidyverse.org/
+- https://dplyr.tidyverse.org/
+- http://zevross.com/blog/2014/03/26/four-reasons-why-you-should-check-out-the-r-package-dplyr-3/
+- https://kykimeng.com/posts/intro-to-data-table/
