@@ -1,7 +1,7 @@
 # Introduction 
 This repository contains an example of using RStudio Connect to create an end-to-end data science pipeline.
 
-Open the presentation to get an overview: end_to_end_R_workflows.pdf
+Open the presentation to get an overview: end_to_end_workflows.pdf
 
 # Getting Started
 Tutorials on Plumber and Pins can be found in the folder tutorials. This is to give a brief example on how to use the basic functions.
@@ -30,7 +30,7 @@ Content:
 4. App/app.R - shiny app for end users to get predictions. Live on Connect. 
 
 Tip:
-- when you deploy your Plumber API and Shiny App, you will need to create an API key in RStudio Connect and add the as an environment variable within your API or App.
+- when you deploy your Plumber API and Shiny App, you will need to create an API key in RStudio Connect and add the key as an environment variable within your API or App.
 
 Once you name your key and add it as an environment variable, you can access pin objects using:
 
