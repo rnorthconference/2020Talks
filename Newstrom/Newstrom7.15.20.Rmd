@@ -1,0 +1,200 @@
+---
+title: 'R statistics: A social scientist’s journey'
+author: "Nicholas Newstrom, PhD., LMFT"
+date: "7/15/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Goals
+- Describe advantages for adopting R statistical software as a social science
+- Explore data science using two packages: `epiDisplay` & `lavaan`
+
+## My Journey with R
+- Introduced to R in introductory statistical classes at the University of Minnesota
+    - About 18 months of R
+    - began and ended with `base` package
+- Research work at Program in Human Sexuality
+    - SOTIPS project needed Cox Hazard Regression 
+    - Structural Equation Modeling (SEM)
+
+## Things that helped
+- R for Data Science
+    - Easy to use
+    - [Available online (Grolemund & Wickham)](https://r4ds.had.co.nz)
+- [Graphics Cook Book (Chang, 2020)](https://r-graphics.org)
+- Stack Overflow
+    - online community for developers
+    - (look for your answer before posting!)
+- Twitter
+    
+
+## Why use R?
+- R is free
+
+Package    Stata/SE   SPSS v26  SAS     Matlab
+--------   --------   --------  ------  -------
+Student    $94        $35       $0      $99
+Business   $765       $1,290    $8,700  $2,150
+---------  --------   --------  ------  -------
+
+## Why use R?
+- R is becoming popular and is well supported
+![](img/Image1.png) {width=50% height=20%}
+
+## Why use R?
+- Advanced statistics (e.g., SEM)
+- Better graphics
+
+## Graphics
+![SPSS Hazard Regression](img/Image2.png)
+
+
+## Graphics
+![R Hazard Regression](img/Image3.png)
+
+## R package: epiDisplay
+- [Virasakdi Chongsuvivatwong, 2018](https://cran.r-project.org/web/packages/epiDisplay/epiDisplay.pdf)
+- Diverse package that includes data exploration and data presentation
+    - Can create tables as well as graphics
+
+## epiDisplay
+```{r, echo= TRUE, message=FALSE}
+library(epiDisplay)
+library(lavaan)
+data(Oswego)
+.data <- Oswego
+attach(.data)
+agegr <- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))
+
+```
+
+<!-- ## epiDisplay -->
+<!-- ```{r, Oswego, echo= FALSE, message=FALSE} -->
+<!-- tab1(ill) # Note the column of cumulative percentages in the table. -->
+<!-- tab1(ill, cum.percent=FALSE) -->
+<!-- ``` -->
+
+<!-- ## epiDisplay -->
+<!-- ```{r, Oswegochoc, echo= FALSE, message=FALSE} -->
+<!-- tab1(chocolate)  -->
+<!-- # Due to missing values, cumulative percentages are now automatically turned off. -->
+<!-- tab1(chocolate, cum.percent=TRUE) -->
+<!-- # Slightly too many columns in text! -->
+<!-- tab1(chocolate, missing=FALSE, bar.values="percent") -->
+<!-- ``` -->
+
+## epiDisplay
+```{r, Oswegoage, echo= TRUE, message=FALSE}
+tab1(agegr, col="grey") # graphic output from older versions of 'tab1'
+```
+
+## epiDisplay
+```{r, Oswego2, echo= TRUE, message=FALSE}
+tab1(agegr, col=c("red","yellow","blue")) # Colours recycled
+```
+
+## epiDisplay
+```{r, Oswego3, echo= TRUE, message=FALSE}
+tab1(agegr, horiz=TRUE)
+```
+
+## Hazard Regression
+```{r, echo= TRUE}
+cc(ill, chocolate)
+```
+
+## Hazard Regression
+```{r, echo= TRUE}
+cc(ill, chocolate, design="case-control")
+```
+
+## Hazard Regression
+```{r, echo= TRUE}
+cs(ill, chocolate) # The outcome variable should come first.
+
+#    For the following table
+#          chocolate
+#    ill     FALSE TRUE
+#     FALSE     7   22
+#     TRUE     20   25
+#
+```
+
+## Hazard Regression
+```{r, echo= TRUE}
+graph.casecontrol(25, 22, 20, 7)
+#cci(25, 22, 20, 7)
+```
+
+## Hazard Regression
+```{r, echo= TRUE}
+graph.prospective(25, 22, 20, 7)
+# Graphs can additionally decorated
+#Alternatively
+# table1 <- make2x2(25,22,20,7)
+# cc(outcome=NULL, exposure=NULL, cctable=table1)
+# cs(outcome=NULL, exposure=NULL, cctable=table1)
+# agegr <- pyramid(age, sex, bin=30)$ageGroup
+# cs(ill, agegr, main="Risk ratio by age group", xlab="Age (years)")
+```
+
+## Structural Equation Modeling (SEM)
+- Allows for testing indirect relationships
+- Path models
+- Factor analysis
+
+## Barriers to SEM with other statistical packages
+- Black box regarding estimation
+- Missing values in Stata
+
+## Confirmatory Factor Analysis (CFA) example
+```{r, PoliticalDemocracy, echo= TRUE}
+ model <- '
+  # measurement model
+    ind60 =~ x1 + x2 + x3
+    dem60 =~ y1 + y2 + y3 + y4
+    dem65 =~ y5 + y6 + y7 + y8
+  # regressions
+    dem60 ~ ind60
+    dem65 ~ ind60 + dem60
+  # residual correlations
+    y1 ~~ y5
+    y2 ~~ y4 + y6
+    y3 ~~ y7
+    y4 ~~ y8
+    y6 ~~ y8 '
+
+fit <- sem(model, data=PoliticalDemocracy)
+```
+
+## CFA example
+```{r, PoliticalDemocracy2, echo= TRUE}
+summary(fit, standardized=TRUE)
+```
+
+## Advantages to Lavaan
+- Easily change estimation
+    - MSW; WSL
+- Drawing models
+    - [Sacha Epskamp](http://sachaepskamp.com/semPlot/examples)
+
+## Path Analysis
+- Anxiety, hypersexuality, compulsivity, and isolation are related to sex offending among adolescents
+- In order to increase our understanding of adolescent sex offending behaviors, testing the direct and indirect effects of attachment, isolation, and hypersexuality is needed
+- Newstrom, Swinburne, & Miner (2020) 
+    - Structural equation modeling (SEM) allows researchers to test relationships between observed and unobserved (i.e., latent) variables in order to test a theoretical model (Schumaker & Lomax, 2010).
+    
+## Path Analysis
+
+![ ](img/Image4.png) 
+## Using R as a Researcher
+
+![It's not like riding a bike . . . ](img/Image6.png) 
+
+## Using R as a Researcher
+
+![It's more like playing tennis](img/Image5.png) 
