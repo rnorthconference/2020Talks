@@ -43,7 +43,7 @@ Business   $765       $1,290    $8,700  $2,150
 
 ## Why use R?
 - R is becoming popular and is well supported
-![](img/Image1.png) {width=50% height=20%}
+![](img/Image1.png){width=60%}
 
 ## Why use R?
 - Advanced statistics (e.g., SEM)
@@ -190,11 +190,12 @@ summary(fit, standardized=TRUE)
     
 ## Path Analysis
 
-![ ](img/Image4.png) 
-## Using R as a Researcher
-
-![It's not like riding a bike . . . ](img/Image6.png) 
+![ ](img/Image4.png){width=90%}
 
 ## Using R as a Researcher
 
-![It's more like playing tennis](img/Image5.png) 
+![It's not like riding a bike . . . ](img/Image6.png){width=90%}
+
+## Using R as a Researcher
+
+![It's more like playing tennis](img/Image5.png){width=60%}
