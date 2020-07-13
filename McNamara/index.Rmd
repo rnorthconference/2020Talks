@@ -1,0 +1,535 @@
+---
+title: "Scraping, iterating, purring"
+subtitle: 
+author: 'Amelia McNamara, PhD' 
+role: 'Assistant Professor of Computer & <br>Information Sciences'
+institute: 'University of St Thomas<br>St Paul, MN, USA'
+date: "noRth keynote 2020"
+output:
+  xaringan::moon_reader:
+    seal: false
+    chakra: libs/remark-latest.js # with @bjungbogati tidyverse dev toulouse: need to save this file to knit offline!
+    lib_dir: libs 
+    smart: false
+    nature:
+      slideNumberFormat: "%current% of %total%" # if you want to disable
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9" # https://github.com/apreshill/talks/blob/master/sdss-blogdown/index.Rmd#L16, https://user2020.r-project.org/program/guidelines/
+      output:
+    css: ["default", "css/my-fonts.css", "css/my-theme.css"] #https://github.com/apreshill/talks/blob/master/uo-sad-plot-better/index.Rmd#L7
+    includes:
+      in_header: header.html    
+      
+# http://arm.rbind.io/slides/xaringan.html
+# https://github.com/rstudio-education/arm-workshop-rsc2019/blob/master/static/slides/xaringan.Rmd    
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE, warning = FALSE, message = FALSE, verbose = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.retina = 3)
+
+# remotes::install_github("rstudio/fontawesome")
+# remotes::install_github("ropenscilabs/icon")
+library(xaringan)
+library(fontawesome)
+library(flair)
+```
+
+
+class: title-slide, left, top
+background-image: url(img/pattern-1477380.png)
+background-size: 180%
+background-repeat: repeat
+background-position: 18% 55%
+
+
+
+
+# `r rmarkdown::metadata$title`
+
+### `r rmarkdown::metadata$author`
+### `r rmarkdown::metadata$role`
+### `r rmarkdown::metadata$institute`
+
+[`r icon::fa("twitter")` @AmeliaMN](https://twitter.com/AmeliaMN)  
+[`r icon::fa("github")` AmeliaMN](https://www.github.com/AmeliaMN)  
+[`r icon::fa("desktop")` amelia.mn](https://www.amelia.mn)
+
+
+
+???
+
+Hi, I'm Amelia McNamara. I'm an assistant professor at the University of St Thomas in Minnesota. I tweet at AmeliaMN, which is a double entendre because my last name is McNamara and I live in Minnesota. I just tweeted a link to these slides if you want to follow along. 
+
+Image by <a href="https://pixabay.com/users/siberian_beard-207105/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1477380">siberian_beard</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=1477380">Pixabay</a>
+
+---
+class: middle
+iteration noun
+
+it·​er·​a·​tion | \ ˌi-tə-ˈrā-shən \
+
+**Definition of iteration**
+<ol>
+<li> : VERSION, INCARNATION
+<br> // the latest iteration of the operating system</li>
+<li> : the action or a process of iterating or repeating: such as </li>
+<ol type="a">
+<li> : a procedure in which repetition of a sequence of operations yields results successively closer to a <br> desired result</li>
+<li> : the repetition of a sequence of computer instructions a specified number of times or until a <br> condition is met <br>
+— compare RECURSION </li>
+</ol>
+<li> : one execution of a sequence of operations or instructions in an iteration </li>
+</ol>
+
+.footnote[[Definiton of iteration](https://www.merriam-webster.com/dictionary/iteration) from Merriam-Webster]
+???
+
+I'm going to be talking about iteration at two different levels. 
+
+
+---
+class: middle
+iteration noun
+
+it·​er·​a·​tion | \ ˌi-tə-ˈrā-shən \
+
+**Definition of iteration**
+<ol>
+<li> : VERSION, INCARNATION
+<br> // the latest iteration of the operating system</li>
+<li> : the action or a process of iterating or repeating: such as </li>
+<ol type="a">
+<li> : a procedure in which repetition of a sequence of operations yields results successively closer to a <br> desired result</li>
+<li> : <b>the repetition of a sequence of computer instructions a specified number of times or until a <br> condition is met</b> <br>
+— compare RECURSION </li>
+</ol>
+<li> : one execution of a sequence of operations or instructions in an iteration </li>
+</ol>
+
+.footnote[[Definiton of iteration](https://www.merriam-webster.com/dictionary/iteration) from Merriam-Webster]
+???
+
+We'll talk about the idea of repetition in computer instructions,
+
+---
+class: middle
+iteration noun
+
+it·​er·​a·​tion | \ ˌi-tə-ˈrā-shən \
+
+**Definition of iteration**
+<ol>
+<li> : VERSION, INCARNATION
+<br> // the latest iteration of the operating system</li>
+<li> : the action or a process of iterating or repeating: such as </li>
+<ol type="a">
+<li> : <b>a procedure in which repetition of a sequence of operations yields results successively closer to a <br> desired result</b></li>
+<li> : the repetition of a sequence of computer instructions a specified number of times or until a <br> condition is met <br>
+— compare RECURSION </li>
+</ol>
+<li> : one execution of a sequence of operations or instructions in an iteration </li>
+</ol>
+
+.footnote[[Definiton of iteration](https://www.merriam-webster.com/dictionary/iteration) from Merriam-Webster]
+???
+
+But also a sequence of operations that yields results successively closer to the desired result. 
+
+---
+# Iteration in R
+
+```{r, echo=FALSE}
+# remotes::install_github("allisonhorst/palmerpenguins")
+library(palmerpenguins)
+```
+
+## for loop approach (inefficient!)
+```{r badapproach, eval=FALSE}
+penguins$bill_length_in <- NA
+for (i in 1:dim(penguins)[1]) {
+  penguins$bill_length_in[i] <- penguins$bill_length_mm[i] / 25.4
+  }
+```
+
+## vectorized approach 
+```{r}
+penguins$bill_length_in <- penguins$bill_length_mm / 25.4
+```
+
+???
+
+As you may already know, traditional control structures like for-loops can be very inefficient in R. Vectorized operations avoid the copy-on-modify issue, and are overall less work for you as the programmer! 
+
+---
+class: middle
+> You should consider writing a function whenever you’ve copied and pasted a block of code more than twice. 
+
+> - R for Data Science 
+
+.footnote[Garrett Grolemund and Hadley Wickham, [R for Data Science](https://r4ds.had.co.nz/)]
+
+---
+# The apply() family of functions
+
+```{r}
+mean(penguins$body_mass_g[penguins$species == "Adelie"], na.rm = TRUE)
+mean(penguins$body_mass_g[penguins$species == "Chinstrap"], na.rm = TRUE)
+mean(penguins$body_mass_g[penguins$species == "Gentoo"], na.rm = TRUE)
+```
+
+```{r}
+tapply(penguins$body_mass_g, penguins$species, mean, na.rm = TRUE)
+```
+
+???
+I grabbed this example from my recent useR! talk. We can avoid copying and pasting by using an apply() function, but I can never remember the syntax. 
+
+
+---
+# tidyverse solution
+
+```{r}
+library(dplyr)
+penguins %>%
+  group_by(species) %>%
+  summarize(mean = mean(body_mass_g, na.rm = TRUE))
+```
+
+???
+
+This solution is much easier for me, cognitively.
+
+---
+class: center, middle
+
+# More complex situations 
+
+???
+
+These have been some pretty basic examples. Repetitive code takes many forms! 
+
+---
+class: middle, big-bullet
+
+# Scraping
+
+- GitHub
+- Facebook
+
+???
+
+I'd like to talk to you about two scraping projects I've done recently. 
+
+---
+# Counting commits 
+
+The first project relates to a promise I made my students in Spring 2019. GitHub had sent me some swag to distribute to students, including two t-shirt redemption codes. 
+
+> I'll give a t-shirt to the student with the most commits over the semester in each section.
+> - Me (without thinking about how hard that might be)
+
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+---
+class: big-bullet
+## One approach (that I didn't use)
+
+- For each student, use the GitHub API to determine all repositories they committed to
+- For each repository, use the API to determine the number of commits in that repository
+- Total all commits for each student by adding up commits from each repository they committed to
+
+## Issues
+
+- Seemed like a lot of levels of iteration to deal with
+- If a student committed to an active repo, their count would be artificially inflated
+- Students worked in groups on repos
+
+---
+
+![](img/GitHubProfileAllContribs.png)
+
+???
+Scraping! 
+
+Initially, I was just going to grab that number where it says "411 contributions in the last year." 
+
+---
+
+![](img/GitHubSource1.png)
+
+???
+
+If you want to look at the HTML code of a web page, you can View Source. Here's where that 411 comes from
+
+---
+# Getting set up to scrape
+```{r}
+roster <- tibble(url = c("https://github.com/AmeliaMN",
+                         "https://github.com/hglanz",
+                         "https://github.com/hardin47",
+                        "https://github.com/nicholasjhorton"))
+```
+
+```{r}
+library(rvest)
+
+session <- html_session("https://github.com")
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+???
+I'm picking on the folks who run the Teach Data Science blog. 
+
+The session isn't actually necessary now, but it will be later.
+
+---
+# Scraping the 411
+```{r}
+library(readr)
+
+commits <- function(url, session) {
+  session %>%
+    jump_to(url) %>%
+    read_html() %>%
+    html_nodes("h2.f4.text-normal.mb-2") %>%
+    html_text() %>%
+    # gsub("^\\s+|\\s+$", "", .) %>% # don't need this!
+    pluck(2) %>%
+    parse_number()
+}
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+???
+
+Take a session, then jump to a url, then read the HTML, then select the HTML nodes that match that selector (selector gadget!), then extract the text, then take the second element and parse the number. 
+
+This is a function that finds that number. 
+
+---
+# Iterating over URLs
+
+```{r}
+library(purrr)
+
+roster <- roster %>% 
+  mutate(commits = map_dbl(url, commits, session = session)) 
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+???
+
+Charlotte Wickham helped me with this code. 
+
+---
+class: big-bullet
+# Problems
+
+- I didn't say I was giving the t-shirt to the person with the most commits in the last year, I said in the time period of the semester
+- Many of my students' commits were on private GitHub repos (visible to me, because of how they were set up in GitHub classroom)
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+---
+# An aside
+![](img/GitHubPreferences.png)
+
+???
+This is just an aside, but I believe the default is to have private contributions not counted on your profile. I've changed this preference myself, because I want more of those green boxes! 
+
+My students hadn't done this, so I needed to be logged in to see their "true" commit counts.
+
+---
+
+![](img/GitHubProfileGreenBlocks.png)
+???
+
+Instead, I decided to grab those green blocks, which actually have data attached to them! 
+
+---
+
+![](img/GitHubSource2.png)
+
+???
+Check it out! They have the dates and number of commits
+
+
+---
+# Here we go again
+
+```{r}
+commits_by_date <- function(url, session){
+  session %>%
+    jump_to(url) %>%
+    read_html() %>%
+    html_nodes("rect.day") %>%
+    html_attrs() %>%
+    map_dfr(as.list) %>% 
+    select(count = `data-count`, date = `data-date`) %>% 
+    mutate(
+      date = parse_date(date),
+      count = parse_number(count),
+      )
+}
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+???
+
+This gets the data from the green boxes. Again, refactored by Charlotte. 
+
+
+---
+# Iterating over URLs
+
+```{r}
+library(tidyr)
+roster %>%
+  mutate(by_date = map(url, commits_by_date, session = session)) %>%
+  unnest(cols = c(by_date)) %>%
+  filter(date > as.Date("2020-02-04"), date < as.Date("2020-05-24")) %>% #changed the dates to 2020
+  group_by(url) %>%
+  summarise(total = sum(count)) %>%
+  arrange(desc(total))
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+---
+# One more wrinkle-- authenticating 
+
+```{r}
+session <- html_session("https://github.com/login")
+
+login <- session %>%
+  html_node("form") %>%
+  html_form() %>%
+  set_values(login = "YourGitHubUsername", password = "SuperSecureP@ssw0rd")
+
+
+github <- session %>%
+  submit_form(login, submit = "commit") %>%
+  read_html()
+```
+
+.footnote[[Counting commits and peer code review](https://teachdatascience.com/countingcommits/), a post by me on the [Teach Data Science blog](https://teachdatascience.com)
+]
+
+???
+
+Like in the blog post, I'm not going to run this here, because I'm not giving you my GitHub password! 
+
+---
+# Iterating 😱
+
+```{r, eval=FALSE}
+count <- c()
+for (i in 1:dim(roster)[1]){
+  tmp <- session %>%
+    jump_to(roster$url[i]) %>%
+    read_html() %>%
+    html_nodes("rect.day") %>%
+    html_attrs() %>%
+    map(`[`, c("data-count", "data-date")) %>%
+    tibble() %>%
+    unnest()  %>%
+    mutate(what = rep(c("count", "date"), times=370)) %>%
+    mutate(which = rep(1:370, each = 2)) %>% 
+    rename(values=".") %>%
+    spread(key = "what", value = "values") %>% 
+    filter(date > "2019-02-04") %>% 
+    mutate(count = parse_number(count)) %>%
+    summarise(total = sum(count))
+  count[i] <- pull(tmp)
+  print(".")
+}
+```
+
+???
+
+Earlier, I was showing you the code that Charlotte helped me refactor. This was what I actually used when I needed to figure out who won the t-shirt. This code is uuuugly. And slow. 
+
+Perfect code doesn't flow out of my (or any programmer's) fingers. If you don't succeed, try try again. 
+
+---
+class: big-bullet
+# Facebook
+
+In October 2019, I finally deleted my Facebook account. I had been a user since I got a college email address in 2006, and had looked at it multiple times a day, every day, in the intervening years. 
+
+But, Facebook has been a bad actor when it comes to using data and protecting peoples' rights. Some of these issues are listed in [my blog post](https://www.amelia.mn/blog/misc/2019/12/29/Deleting-Facebook.html), although Facebook has just continued to do bad things. 
+
+- [Facebook’s own civil rights auditors say its policy decisions are a ‘tremendous setback’](https://www.washingtonpost.com/technology/2020/07/08/facebook-civil-rights-audit/)
+- [Facebook Engages in Online Segregation and Redlining Through Discriminatory Advertising System, Lawyers’ Committee Argues](https://lawyerscommittee.org/lawyers-committee-confronts-facebooks-attempts-to-dismiss-digital-redlining-lawsuit-against-its-housing-advertisements/)
+- [Facebook cannot separate itself from the hate it spreads ](https://onezero.medium.com/facebook-cannot-separate-itself-from-the-hate-it-spreads-967ec9b8793c)
+
+.footnote[December 2019 [Blog post about deleting Facebook](https://www.amelia.mn/blog/misc/2019/12/29/Deleting-Facebook.html), plus my [associated GitHub repo](https://github.com/AmeliaMN/deleting_facebook). The bullet-points on Facebook here are all from the last **week** (July 2020). For more on Facebook and other tech ethics, follow [@hypervisible](https://twitter.com/hypervisible).]
+
+
+---
+class: center, middle
+background-image: url(img/bookheap.jpg)
+background-size: cover
+
+## I'm a bit of a data hoarder
+
+???
+<span>Photo by <a href="https://unsplash.com/@elifrancis?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Eli Francis</a> on <a href="https://unsplash.com/s/photos/hoard?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Unsplash</a></span>
+---
+# Getting data from Facebook
+
+Facebook actually makes it pretty easy to get a lot of your data. You can choose `.json` or `.html` formats. I ended up grabbing both, but I think the `.html` is probably easiest for most folks (it's what your dad would understand). 
+
+.pull-left[
+- photos and videos
+- friends
+- messages
+- security and login information
+- other activity
+- profile information
+- posts
+- ads
+- about you
+- following and followers
+]
+.pull-right[
+- groups
+- events
+- comments
+- search history
+- likes and reactions
+- location
+- pages
+- your places
+- files
+]
+
+???
+
+In the nine months since I deleted my account, I have definitely reached into this data a fair amount. It has helped me verify dates of things that happened, remember jokes between my friends and I, etc. 
+
+---
+# Data Facebook does not give you
+
+There were two notable things I wanted from my data that don't come from the data download:
+
+- tagged photos
+- friends' birthdays
+
+
+
