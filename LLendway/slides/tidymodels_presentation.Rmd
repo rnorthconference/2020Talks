@@ -60,7 +60,7 @@ In this talk, I will give a high-level overview of some `tidymodels` functions, 
 </div>
 
 <div class="notes">
-We will get to see some detail for a couple different times of models, even though I can't cover all `tidymodels` has to offer. I hope it will excite you enough to continue learning about it on your own. 
+We will get to see some detail for a couple different types of models, even though I can't cover all `tidymodels` has to offer. I hope it will excite you enough to continue learning about it on your own. 
 </div>
 
 ## What will we cover?
@@ -71,7 +71,7 @@ We will get to see some detail for a couple different times of models, even thou
 </div>
 
 <div class="notes">
-We will walk through all of these machine learning steps, using different `tidymodels` functions along the way. 
+We will walk through all of these machine learning steps, using different `tidymodels` functions along the way. We start by using graphs to explore the data. We then split the data into different subsets. We pre-process that data, meaning we execute transformations of variables and other such things. Then we fit the the model (which may involve tuning parameters) and evaluate it. Throughout the process, we question the model and think about consequences of using the model on new sets of data.
 </div>
 
 ## Libraries 
@@ -93,6 +93,7 @@ tidymodels_packages()
 
 
 <div class="notes">
+First, here's all the libraries we will use. If you're following along in the Rmd file for you, they will be listed in the first code chunk.
 </div>
 
 ## The data
@@ -109,7 +110,7 @@ house_prices %>%
 We will model the home price using the other variables in the model.
 
 <div class="notes">
-We will use the `house_prices` dataset from the `moderndive` library. The data were orginally from Kaggle. This dataset contains house sale prices for King County, which includes Seattle. It includes homes sold between May 2014 and May 2015. 
+We will use the `house_prices` dataset from the `moderndive` library. The data were originally from Kaggle. This dataset contains house sale prices for King County, which includes Seattle. It includes homes sold between May 2014 and May 2015. 
 </div>
 
 ## Exploration
@@ -126,7 +127,7 @@ house_prices %>%
 <div class="notes">
 We start by exploring the data, first looking at the quantitative variables. 
 
-Things I noticed and how I might correct them:
+Some observations include:
 
 * Right-skewness in `price` and all variables regarding square footage --> log transform since we will be using linear regression.  
 * Many 0's in `sqft_basement`, `view`, and `yr_renovated` --> create indicator variables of having that feature vs. not, ie. a variable called `basement` where a 0 indicates no basement (`sqft_basement` = 0) and a ` indicates a basement (`sqft_basement` > 0).  
@@ -183,7 +184,7 @@ house_testing <- testing(house_split)
 ```
 
 <div class="notes">
-The `initial_split()` function from the `rsample` library (part of `tidymodels`) is used to create this split. We just do random sampling with this dataset, but there are other arguments that allow you to do things like stratified sampling. Then we use `training()` and `testing()` to extract the two datasets, `house_training` and `house_testing`. 
+The `initial_split()` function from the `rsample` library (part of `tidymodels`) is used to create this split. We do random sampling with this dataset, but there are other arguments that allow you to do things like stratified sampling. Then we use `training()` and `testing()` to extract the two datasets, `house_training` and `house_testing`. 
 </div>
 
 ## Data splitting
@@ -202,7 +203,7 @@ We set up the five folds of the training data using the `vfold_cv()` function. I
 
 ## Data preprocessing and recipe
 
-```{r recipe, echo=FALSE}
+```{r recipe_full, echo=FALSE}
 house_recipe <- recipe(price ~ ., #short-cut, . = all other vars
                        data = house_training) %>% 
   # Pre-processing:
@@ -246,17 +247,91 @@ A variety of `step_xxx()` functions can be used to do data pre-processing/transf
 ![](../images/recipe_steps.png){width=600}
 
 <div class="notes">
-* We use the `recipe()` function to define the response/outcome variable and the predictor variables. 
+After the data are split, we use the `recipe()` function to define the response or outcome variable and the predictor variables and variety of `step_xxx()` functions to pre-process/transform variables. This shows an image of the entire set of `recipe` and `step`s code in order to fit on one screen. I will break this up in the next couple slides. Note that these functions have not yet been applied to any dataset. We are setting it up to do that.
+</div>
 
-* I used a few `step_xxx` functions, with brief descriptions in the code. For example `step_log()` takes the log (in this case, base 10) of the variables and `step_dummy()` creates indicator or dummy variables for categorical variables.
 
-* We also use `update_roles()` to change the roles of some variables. 
+## Data preprocessing and recipe
 
+Beginning of the code:
+
+```{r recipe1, eval=FALSE}
+house_recipe <- recipe(price ~ ., #short-cut, . = all other vars
+                       data = house_training) %>% 
+  # Pre-processing:
+  # Remove, redundant to sqft_living and sqft_lot
+  step_rm(sqft_living15, sqft_lot15) %>%
+  # log sqft variables & price
+  step_log(starts_with("sqft"),-sqft_basement, price, 
+           base = 10) %>% 
+```
+
+<div class="notes">
+* Like I just mentioned, the `recipe()` function defines the response or outcome variable and the predictor variables. Like in the `lm()` function, the variable to the left of the tilde is the response variable. Everything to the right is a predictor. Here I use the dot to mean all other variables. 
+
+* `step_rm()` removes the variables listed
+
+* `step_log()` takes the log (in this case, base 10) of the variables. I've also used some helper functions to help me choose those variables.
+</div>
+
+## Data preprocessing and recipe
+
+Continuation of the code:
+
+```{r recipe2, eval=FALSE}
+  # new grade variable combines low grades & high grades
+  # indicator variables for basement, renovate, and view 
+  # waterfront to numeric
+  # age of house
+  step_mutate(grade = as.character(grade),
+              grade = fct_relevel(
+                        case_when(
+                          grade %in% "1":"6"   ~ "below_average",
+                          grade %in% "10":"13" ~ "high",
+                          TRUE ~ grade
+                        ),
+                        "below_average","7","8","9","high"),
+              basement = as.numeric(sqft_basement == 0),
+              renovated = as.numeric(yr_renovated == 0),
+              view = as.numeric(view == 0),
+              waterfront = as.numeric(waterfront),
+              age_at_sale = year(date) - yr_built)%>% 
+```
+
+<div class="notes">
+* `step_mutate()` allows me to create my own variables in pretty much any way I could imagine.
+</div>
+
+## Data preprocessing and recipe
+
+Continuation of the code:
+
+```{r recipe3, eval=FALSE}
+  # Remove sqft_basement, yr_renovated, and yr_built
+  step_rm(sqft_basement, yr_renovated, yr_built) %>% 
+  # Create a month variable
+  step_date(date, features = "month") %>% 
+  # Make these evaluative variables, not included in modeling
+  update_role(all_of(c("id","date","zipcode", 
+                       "lat", "long")),
+              new_role = "evaluative") %>% 
+  # Create indicator variables for factors/character/nominal
+  step_dummy(all_nominal(), all_predictors(), 
+             -has_role(match = "evaluative"))
+```
+
+
+<div class="notes">
+* `step_date()` creates a month variable.
+
+* `step_dummy()` creates indicator or dummy variables for categorical variables.
+
+* We also use `update_roles()` to change the roles of some variables. In this case, I do not want to use these variables as predictors but may want to use them in model evaluation.
 </div>
 
 ## Apply `recipe` and `step`s
 
-Apply recipe and steps to training dataset, just to see the output. Notice the names of the variables.
+Apply recipe and steps to training dataset, in order to see the output. Notice the names of the variables.
 
 ```{r apply_recipe}
 house_recipe %>% 
@@ -265,7 +340,7 @@ house_recipe %>%
 ```
 
 <div class="notes">
-Even though it's not necessary, I like applying these to the training data, just to check that all went as planned. Notice the variable `sqft_living` is now actually log base 10 of `sqft_living` and if we scroll to the right we can see examples of the indicator/dummy variables that were created.
+Even though it's not necessary, I like applying the `recipe()` and `step()`s to the training data to check that all went as planned. Notice the variable `sqft_living` is now actually log base 10 of `sqft_living` and if we scroll to the right we can see examples of the indicator/dummy variables that were created.
 </div>
 
 ## Defining the model
@@ -277,7 +352,7 @@ In order to define our model, we need to do these steps:
 * Set the mode, which is either "regression" for continuous response variables or "classification" for binary/categorical response variables. (Note that for linear regression, it can only be "regression", so we don't NEED this step in this case.)  
 * (OPTIONAL) Set arguments to tune. We'll see an example of this later.
 
-Find all available functions from parsnip [here](https://www.tidymodels.org/find/parsnip/). [Here](https://parsnip.tidymodels.org/reference/linear_reg.html) is the detail for linear regression.
+Find all available functions from `parsnip` [here](https://www.tidymodels.org/find/parsnip/). [Here](https://parsnip.tidymodels.org/reference/linear_reg.html) is the detail for linear regression.
 
 ```{r linear_mod}
 house_linear_mod <- 
@@ -290,16 +365,16 @@ house_linear_mod <-
 ```
 
 <div class="notes">
-Now that we have split and pre-processed the data, we are ready to model! First, we will model `price` (which is actually now *log(price)*) using simple linear regression.
+Now that we have split the data and defined outcome/predictor variables and the pre-processing steps, we are ready to model! First, we will model `price` (which is actually now *log(price)*) using simple linear regression.
 
 In order to define our model, we need to do these steps:
 
-* Define the model type, which is the general type of model you want to fit. In this case `linear_reg()`.  
-* Set the engine, which defines the package/function that will be used to fit the model.  In this case "lm".  
-* Set the mode, which is either "regression" for continuous response variables or "classification" for binary/categorical response variables. (Note that for linear regression, it can only be "regression", so we don't NEED this step in this case.)  
+* Define the model type, which is the general type of model you want to fit. In this case `linear_reg()`. I'll put the link to `parsnip` functions in the chat: [https://www.tidymodels.org/find/parsnip/](https://www.tidymodels.org/find/parsnip/).
+* Set the engine with `set_engine()`, which defines the package/function that will be used to fit the model.  In this case "lm".  
+* Set the mode with `set_mode()`, which is either "regression" for continuous response variables or "classification" for binary/categorical response variables. (Note that for linear regression, it can only be "regression", so we don't NEED this step in this case, but I have it here so you don't forget it for other models later.)  
 * (OPTIONAL) Set arguments to tune. We'll see an example of this later.
 
-This is just setting up the process. We haven't fit the model to data yet, and there's still one more step before we do - creating a workflow!
+This is merely setting up the process. We haven't fit the model to data yet, and there's still one more step before we do - creating a workflow!
 </div>
 
 ## Creating a workflow
@@ -317,7 +392,7 @@ house_lm_wf <-
 ```
 
 <div class="notes">
-Start the workflow, add the recipe and the model.
+The last step before actually fitting the model is setting up a workflow, which combines the recipe and steps with the model. 
 </div>
 
 ## Workflow output
@@ -348,7 +423,7 @@ house_lm_fit %>%
   mutate_if(is.numeric, ~round(.x,3))
 ```
 <div class="notes">
-Now we are finally ready to fit the model! After all that work, this part seems easy. We first use the `fit()` function to fit the model, telling it which data set we want to fit the model to. Then we use some other functions to display the results nicely.
+Now we are finally ready to fit the model! After all that work, this part seems easy. We first use the `fit()` function to fit the model, telling it which data set we want to fit the model to. Then we use `pull_workflow_fit()` and `tidy()` functions to display the results nicely.
 </div>
 
 ## Evaluating model (overview)
@@ -371,7 +446,7 @@ RMSE is a common performance metric for models with a quantitative response. It 
 
 So, again looking at the first row in the schematic, the model is fit to folds 2, 3, 4, and 5 and we would use that model to compute the RMSE for fold 1. In the second row, the model is fit to the data in folds 1, 3, 4, and 5 and that model is used to compute the RMSE for the data in the 2nd fold. 
 
-After this is done for all 5 folds, we take the average RMSE, to obtain the overall performance. This overall error is sometimes called the CV error. Averaging the performance over $k$ folds gives a better estimate of the true error than just using one hold-out set. It also allows us to estimate its variability.
+After this is done for all 5 folds, we take the average RMSE, to obtain the overall performance. This overall error is sometimes called the CV error. Averaging the performance over $k$ folds gives a better estimate of the true error than using one hold-out set. It also allows us to estimate its variability.
 </div>
 
 ## Evaluating model (code)
@@ -391,7 +466,7 @@ house_lm_fit_cv %>%
 ```
 
 <div class="notes">
-Thankfully this is easy to implement with the `fit_resamples()` function. The column called `.estimate` in the output shows the rmse for each fold. They are similar but not all the same. 
+This might seem like a lot of work, but thankfully this is easy to implement with the `fit_resamples()` function. The column called `.estimate` in the output shows the rmse for each fold. They are similar but not all the same. 
 </div>
 
 ## Evaluating model (code)
@@ -400,7 +475,7 @@ Thankfully this is easy to implement with the `fit_resamples()` function. The co
 # Evaluation metrics averaged over all folds:
 collect_metrics(house_lm_fit_cv)
 
-# Just to show you where the averages come from:
+# To show you where the averages come from:
 house_lm_fit_cv %>% 
   select(id, .metrics) %>% 
   unnest(.metrics) %>% 
@@ -411,7 +486,7 @@ house_lm_fit_cv %>%
 ```
 
 <div class="notes">
-The `collect_metrics()` function averages the metrics over all the evaluation folds. I also provided the code to show you how you could do that "by hand".
+The `collect_metrics()` function averages the metrics over all the evaluation folds. I also provided the code to show you how you could do that "by hand" so that you know where it comes from.
 </div>
 
 ## Predicting and evaluating testing data
@@ -429,9 +504,9 @@ collect_predictions(house_lm_test) %>%
   slice(1:5)
 ```
 <div class="notes">
-In this simple scenario, we may be interested in seeing how the model performs on the testing data that was left out. The the `last_fit()` function will fit the model to the training data and apply it to the testing data. Because it is using the workflow, it is applying the same transformation steps to the testing data as were applied to the training data.
+In this simple scenario, we may be interested in seeing how the model performs on the testing data that was left out. The `last_fit()` function will fit the model to the training data and apply it to the testing data. Because it is using the workflow, it is applying the same transformation steps to the testing data as were applied to the training data.
 
-After the model is fit and applied, we collect the performance metrics and display them and show the predictions from the testing data.
+After the model is fit and applied, we collect the performance metrics and display them and show a sample of predictions from the testing data.
 </div>
 
 ## How will the model be used?
@@ -453,9 +528,9 @@ collect_predictions(house_lm_test) %>%
 
 This shows predicted vs. actual prices for a zoomed-in subset of the data. 
 
-When we use create models, it is important to think about how the model will be used and specifically how the model could do harm. One thing to notice in the graphs above is that the lower priced homes are, on average, overestimated whereas higher priced homes are, on average, underestimated. 
+When we create models, it is important to think about how the model will be used and specifically how the model could do harm. One thing to notice in the graphs above is that the lower priced homes are, on average, overestimated whereas higher priced homes are, on average, underestimated. 
 
-What if this model was used to determine the price of homes for property tax purposes? Then lower priced homes would be overtaxed while higher priced homes would be undertaxed. 
+What if this model was used to determine the price of homes for property tax purposes? Then lower priced homes would be overtaxed while higher priced homes would be under taxed. We would want to further improve this model before using it in that way.
 </div>
 
 ## LASSO model - set up model
@@ -478,9 +553,9 @@ house_lasso_mod <-
 ```
 
 <div class="notes">
-Now we are going to try using [Least Absolute Shrinkage and Selection Operator (LASSO)](https://en.wikipedia.org/wiki/Lasso_(statistics)) regression. This method shrinks some coefficients to 0 based on a penalty term. We will use cross-validation to help us find the best penalty term. 
+Next we move on to a slightly more complex model: [Least Absolute Shrinkage and Selection Operator (LASSO)](https://en.wikipedia.org/wiki/Lasso_(statistics)) regression, or LASSO for short. This method shrinks some coefficients to 0 based on a penalty term. We will use cross-validation to help us find the best penalty term. 
 
-We will set up the model similar to how we set up the linear model, but add a `set_args()` function. We are telling it that we are going to tune the penalty parameter later.
+We will set up the model similar to how we set up the linear model, but now add the `set_args()` function I briefly mentioned earlier. We are telling it that we are going to tune the penalty parameter later.
 </div>
 
 ## Create the workflow
@@ -498,6 +573,7 @@ house_lasso_wf <-
 ```
 
 <div class="notes">
+Again, we create a workflow that uses the same recipe as before but updates the model to the LASSO model.
 </div>
 
 ## Workflow output
@@ -507,7 +583,7 @@ house_lasso_wf
 ```
 
 <div class="notes">
-We can see that we are using a different model now.
+The output confirms we are using a different model now.
 </div>
 
 ## Tuning the penalty parameter
@@ -521,6 +597,7 @@ penalty_grid
 ```
 
 <div class="notes">
+We use the `grid_regular()` function from the `dials` library (part of `tidymodels`) to choose some values of the `penalty` parameter for us. Alternatively, we could give it a vector of values we want to try.
 </div>
 
 ## Tuning the penalty parameter
@@ -539,6 +616,7 @@ house_lasso_tune
 ```
 
 <div class="notes">
+Then, we use the `tune_grid()` function to fit the model using cross-validation for all `penalty_grid` values and evaluate on all the folds.
 </div>
 
 ## Tuning the penalty parameter
@@ -554,7 +632,7 @@ house_lasso_tune %>%
 ```
 
 <div class="notes">
-Then look at the cross-validated results. This shows rmse for fold 1 for each `penalty` value from `penalty_grid`. The model is fit to data from folds 2-5, then applied to fold 1 and RMSE is computed.
+Next, look at the cross-validated results. This shows RMSE for fold 1 for each `penalty` value from `penalty_grid`. The model is fit to data from folds 2-5, then applied to fold 1 and RMSE is computed.
 </div>
 
 ## Tuning the penalty parameter
@@ -572,9 +650,9 @@ best_param
 ```
 
 <div class="notes">
-`collect_metrics()` averages RMSE over all folds.
+`collect_metrics()` averages RMSE for each `penalty` term over all folds.
 
-We choose the best penalty parameter using `select_best()`, which chooses the parameter with the smallest cross-validated rmse. There are other ways you can select models, like `select_by_one_std_error()` which "selects the most simple model that is within one standard error of the numerically optimal results".
+We choose the best penalty parameter as the one with the smallest cross-validated RMSE. The `select_best()` does this. There are other ways you can select parameters, like `select_by_one_std_error()` which "selects the most simple model that is within one standard error of the numerically optimal results".
 </div>
 
 ## Tuning the penalty parameter
@@ -593,10 +671,10 @@ house_lasso_tune %>%
 
 
 <div class="notes">
-Hard to see, but smallest rmse is 0.1354254, which occurs at a penalty of 2.069138 x 10^-04
+This visually shows the cross-validated RMSE for each penalty term. It is hard to see, but smallest RMSE is 0.1354254, which occurs at a penalty of about 2.07 x 10^-04
 </div>
 
-## Finalize worflow for best tuned parameter
+## Finalize workflow for best tuned parameter
 
 ```{r tune_wf}
 house_lasso_final_wf <- house_lasso_wf %>% 
@@ -605,7 +683,7 @@ house_lasso_final_wf
 ```
 
 <div class="notes">
-Adjust the workflow to include the best tuning parameter.
+Once we choose the parameter we want, we adjust the workflow to include the best tuning parameter using the `finalize_workflow()` function.
 </div>
 
 ## Evaluate on testing data
@@ -644,7 +722,9 @@ Like before, we apply the model to the test data and examine some final metrics.
 </div>
 
 <div class="notes">
-Thank you to all of these folks for the wonderful resources and for developing these packages!
+So that was my very quick overview of `tidymodels`. I hope it got you excited to use it. 
+
+Thank you to all of these folks for the wonderful resources and for developing these packages! Check out their pages for more examples and resources.
 </div>
 
 ## THANK YOU!
