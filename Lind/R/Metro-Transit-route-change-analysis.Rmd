@@ -98,3 +98,141 @@ As suggested in the output from the library load message, it is best to maximize
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 ```
+
+The data input into `rstan` must be a list. Factors should be translated as their integer equivalents, so e.g. here the route class is `1:4` with the levels specified to match the original data. 
+
+```{r dataprep}
+tomod <- as.list(dat[,
+                        .(route = as.integer(factor(Route)),
+                          cls = as.integer(factor(rte_class, levels = c('CoreLoc', 'CommExp', 'SuburbL', 'Support'))),
+                          hrs_chg = HrsDiff / SumOfInSrvHrs_2015,
+                          y = ridesRate)])
+```
+
+## a "null model": single distribution of change  
+In this model, there is no information about how routes might be similar to each other, or whether the amount of service has changed. All observed route changes are drawn from a single distribution, with a prior probability close to zero (no change).  
+
+```{r m0, cache = T, message=F, warning = F}
+m0 <- rethinking::map2stan(
+  alist(
+    y ~ dnorm(muhat, sigma), # change drawn from normal with mean, var
+    muhat ~ dnorm(0, 1), # mean prior
+    sigma ~ dcauchy(0, 1) # variance prior (half-cauchy to be positive)
+  ),
+  data = tomod, chains = 1, debug = T, control = list(max_treedepth = 15)
+  )
+```
+
+This gives you a feel for how the model is compiled, and then evaluated by the number of chains specified (I use just one here for demonstration). For those interested in exploring more with `stan`, note that the `rethinking::map2stan` function includes a human-readable stan model object. 
+
+In the output, the descriptors of the coefficients reflect the shape of the overall distribution (mean and variance): 
+```{r m0_summary}
+rethinking::precis(m0)
+```
+
+## the developed model: hierarchical  
+Skipping over the trial-and-fit in model development (the fun part for the statistician), a relatively simple implementation of the problem is to nest the intercept and service level coefficient in the route type classification, and then have those drawn from a common "parent" distribution.   
+
+
+*This model may take some time to run* if you want the full experience you can use `chains = 4, cores = 3` in the function call.  
+
+```{r m4, cache = T, message = F, warning = F}
+m4 <- map2stan(
+  alist(
+    y ~ dnorm(muhat, sigma),              # same probabilistic draw as m0
+    muhat <- a_C[cls] + b_H[cls]*hrs_chg, # linear predictor
+    a_C[cls] ~ dnorm(A, sigma_class),     # intercept nested
+    b_H[cls] ~ dnorm(B_H, sigma_hours),   # slope nested
+    c(A, B_H) ~ dnorm(0, 2),              # parent distribution priors
+    c(sigma, sigma_class, sigma_hours) ~ dcauchy(0, 1) # variance priors
+  ),
+  data = tomod, chains = 1, debug = F, 
+  control = list(max_treedepth = 15, adapt_delta = 0.98)
+)
+
+```
+
+```{r precism4, message = F}
+precis(m4) # parent parameter coefficients
+precis(m4, depth = 2) # hierarchical coefficients
+```
+
+### visualizing, output, scenarios  
+The wonderful thing about a hierarchical Bayesian model is that once it has been fit, interpretation and extension are very natural to consider, and implement using draws from the model probabilities themselves. Thus rather than visualizing or focusing on parameter estimates, we can integrate back to the outcomes of interest (in this case, the ridership % change) and examine the impact of those predictors on the overall outcome.  
+
+For each exploration, a predictor matrix is needed to be the new input into the model. For instance, at 0% change in hours, what is the distribution of probability of ridership change? 
+
+```{r intercept_dat}
+## at 0% hours change, what can we expect? 
+d.pred0 <- as.list(expand.grid(cls = c(1, 2, 3, 4), hrs_chg = 0))
+predout0 <- rethinking::link(m4, data = d.pred0) #draws from the model with the input grid indicated
+head(predout0) # matrix output
+```
+
+Then the process to handle the output samples is:  
+
+1. make `data.table`
+2. `melt`  
+3. plot
+
+
+```{r intercept_viz}
+tomelt <- as.data.table(predout0)
+setnames(tomelt, c('Core Local', 'Commuter/Express', 'Suburban Local', 'Supporting Local'))
+toplot <- melt(tomelt,variable.name = 'routeType', value.name = 'intercept')
+
+rugplot <- data.table(routeType = factor(tomod$cls, labels = c('Core Local', 'Commuter/Express', 'Suburban Local', 'Supporting Local')),
+                      intercept = tomod$y)
+
+ggplot(toplot, aes(x = intercept, fill = routeType)) + 
+  theme_minimal(base_size = 15) + 
+  geom_density(alpha = 0.5) + 
+  geom_rug(data = rugplot, sides = 'b') + 
+  scale_y_continuous(name = 'relative probability', labels = NULL) + 
+  scale_x_continuous(labels = scales::percent, limits = c(-0.3, 0), name = 'change in ridership from 2015') + 
+  scale_fill_manual(values = MT_palette, name = '') + 
+  facet_grid(routeType~'2015 to 2019') + 
+  theme(legend.position = 'none') + 
+  ggtitle('expected change in ridership 2015-2019', 'in-service hours held constant')
+```
+
+Finally, the impact on changing hours of service by route class can be visualized along a sequential predictor from -50% to 50% change (halving of service or adding 50% to existing service in 2015):  
+
+```{r slope_pred}
+
+d.pred <- as.list(expand.grid(cls = c(1, 2, 3, 4), hrs_chg = seq(-0.5, 0.5, by = 0.01)))
+predout4 <- link(m4, data = d.pred)
+dim(predout4) # 1000 draws, 4 classes, 100 modeled hours changes
+```
+
+At this point the output matrix requires some reduction to summary statistics, while keeping dimensions straight. The nice thing is the flexibility to use any quantile or probability threshhold that you and your business units might find appropriate - no restrictive 5% thinking necessary.  
+
+Here I use the 93% credible interval.
+
+```{r slope_dat}
+predframe4 <- data.table(expand.grid(cls = c(1, 2, 3, 4), hrs_chg = seq(-0.5, 0.5, by = 0.01))) # identifying dataframe
+
+predframe4[, modRate := apply(predout4, 2, mean)]
+predframe4[, loRate := apply(predout4, 2, PI, prob = 0.93)[1,]]
+predframe4[, hiRate := apply(predout4, 2, PI, prob = 0.93)[2,]]
+
+predframe4
+```
+
+Finally the "interactions" plot where the slopes are varying by route class can be nicely related back to the overall change in route ridership.  
+
+```{r viz_slope}
+ggplot(predframe4, aes(x = hrs_chg, y = exp(modRate), fill = factor(cls))) +
+  theme_minimal(base_size = 15) + 
+  geom_ribbon(aes(ymin = exp(loRate), ymax = exp(hiRate)), alpha = 0.4) + 
+  geom_path(aes(col = factor(cls))) + 
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L), name = '2019 ridership relative to 2015', limits = c(0.5, 1.5)) + 
+  scale_x_continuous(labels = scales::percent, name = '% change in hours') + 
+  scale_fill_manual(values = alpha(MT_palette), name = '', labels = c('Core local', 'Commuter/Express', 'Suburban Local', 'Supporting')) + 
+  scale_color_manual(values = MT_palette, name = '', labels = c('Core local', 'Commuter/Express', 'Suburban Local', 'Supporting')) + 
+  facet_wrap(~factor(cls, labels = c('Core local', 'Commuter/Express', 'Suburban Local', 'Supporting'))) + 
+  geom_hline(yintercept = 1, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = 'none') + 
+  ggtitle('expected change in ridership 2015-2019', subtitle = 'response to change in in-service hours')
+```
