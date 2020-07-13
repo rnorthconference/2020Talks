@@ -1,0 +1,100 @@
+---
+title: "Metro-Transit-route-change-analysis"
+date: '`r Sys.Date()`'
+author: "Metro Transit Strategic Initiatives"
+output: html_document
+---
+
+# Overview
+Metro Transit has experienced declining ridership throughout its bus system from 2015 to 2019. A simple probabilistic, hierarchical analysis is presented to understand the differences among route types, and routes based on the amount of service provided. 
+
+### Load libs
+```{r setup, cache = F}
+library(data.table)
+library(ggplot2)
+library(DT)
+knitr::opts_chunk$set(echo = TRUE)
+
+# Metro Transit brand colors
+MT_palette <- c('#0053A0','#ED1B2E','#FFD200','#008144','#F68A1E','#ffffff')
+
+```
+
+# Import & Viz the data  
+The dataset consists of publicly reported annual ridership figures by route from 2015 and 2019, along with the route class and number of "in-service hours." 
+
+```{r impDat}
+dat <- fread('../data/MetroTransit-route-ridership-hours-2015-2019.csv')
+knitr::kable(dat[1:5])
+```
+
+### Derived variables  
+```{r varz}
+# difference 
+dat[, `:=`(ridesDiff = (Total_Riders_2019 - Total_Riders_2015),
+              HrsDiff = (SumOfInSrvHrs_2019 - SumOfInSrvHrs_2015))]
+
+# fraction difference from base
+dat[, ridesPct := ridesDiff / Total_Riders_2015]
+
+# log rate
+dat[, ridesRate := log(Total_Riders_2019 / Total_Riders_2015)]
+
+# somewhat arbitrary service change identifier at 30% hours diff
+dat[(HrsDiff / SumOfInSrvHrs_2015) > 0.3, ServiceChange := 'increase']
+dat[(HrsDiff / SumOfInSrvHrs_2015) < -0.3, ServiceChange := 'decrease']
+dat[is.na(ServiceChange), ServiceChange := 'none']
+dat[, .N, ServiceChange]
+```
+
+### Visualizations 
+
+#### Change in ridership as a percentage of 2015 ridership (slide 5 fig):  
+
+```{r slide5, warning = F}
+p <- ggplot(dat, aes(x = factor(Route, levels = dat[order(ridesDiff), Route], order = T), y = ridesPct, fill = rte_class))
+p + geom_bar(stat = 'identity') + 
+  theme_minimal(base_size = 20) +
+  scale_fill_manual(values = MT_palette, name = 'route class') + 
+  scale_x_discrete(labels = NULL, name = 'route') + 
+  scale_y_continuous(name = '% change in riderhsip 2015 - 2019',
+                     labels = scales::percent) 
+```
+
+#### Distribution of log rate response (slide 9 fig):   
+
+```{r overall_change, message = F, warning = F}
+ggplot(dat, aes(x = ridesRate)) + geom_histogram() + 
+  theme_bw(base_size = 15) + 
+  scale_x_continuous(name = 'log response rate') + 
+  geom_vline(xintercept = 0, lty = 3)
+```
+  
+#### A faceted view of response by category  
+```{r change_facet, message = F, warning = F}
+ggplot(dat, aes(x = ridesRate, fill = ServiceChange)) + 
+  geom_density(alpha = 0.5) + 
+  geom_vline(xintercept = 0) + 
+  facet_wrap(~rte_class)
+```
+
+# Constructing the probabilistic model  
+
+### Configuring `rethinking`  
+
+The [`rethinking` package](https://github.com/rmcelreath/rethinking) is a companion to [_Statistical Rethinking: A Bayesian Course with Examples in R and STAN_](https://www.routledge.com/Statistical-Rethinking-A-Bayesian-Course-with-Examples-in-R-and-STAN/McElreath/p/book/9780367139919). The book and package build intuition from the basics of probability distributions and likelihoods, in (for me) a very effective way.  
+
+`rethinking` is most powerfully used as a translator for the `rstan` package, which is the `R` wrapper for the [Stan platform](https://mc-stan.org/). 
+
+Installation of Stan and `rstan` requires operating system-specific directions, please see [here](https://mc-stan.org/users/interfaces/rstan.html).
+
+```{r rethinking}
+library(rethinking)
+```
+
+As suggested in the output from the library load message, it is best to maximize the number of cores available for parallel processing of stan models, and to avoid unnecessary compilation:  
+
+```{r stanconfig}
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
