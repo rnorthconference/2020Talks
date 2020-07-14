@@ -214,3 +214,11 @@ Run through example if time permits
 \centering
 \Huge
 Thank You! 
+ \bigskip
+\normalsize
+\begin{itemize}
+  \item[] Contact information:
+  \item[] Haema Nilakanta
+  \item[] nilak008@umn.edu
+  \item[] https://haemanilakanta.github.io/
+\end{itemize}
