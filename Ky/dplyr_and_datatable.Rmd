@@ -27,20 +27,56 @@ mono_light(
 )
 ```
 
+# About me 
+
+.pull-left[
+![Kim and Momo](Kim.jpg)
+]
+
+.pull-right[
+- she/her/hers
+- a Cambodian
+- a Data Scientist
+- loves R, statistics and interactive data visualization
+- Macalester graduate, current UMN graduate student in Statistics
+- co-organize WiMLDS Twin Cities, co-chair MinneAnalytics conferences, R-Ladies regular
+]
+
+
+---
+
 # `dplyr`
 
-- `mutate()` adds new variables that are functions of existing variables
-- `select()` picks variables based on their names
-- `filter()` picks cases based on their values
-- `summarise()` reduces multiple values down to a single summary
-- `arrange()` changes the ordering of the rows
-- `group_by()` performs operations by group
+.left-column[ 
+![dplyr](dplyr.png)
+]
+
+.right-column[ 
+- developed by Hadley Wickham of RStudio + many other contributors
+- "a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges"
+- part of the `tidyverse`
+]
+
+
+
+---
+
+# `dplyr` Verbs 
+
+- **`mutate()`** adds new variables that are functions of existing variables
+- **`select()`** picks variables based on their names
+- **`filter()`** picks cases based on their values
+- **`summarise()`** reduces multiple values down to a single summary
+- **`arrange()`** changes the ordering of the rows
+- **`group_by()`** performs operations by group
+
+
 
 ---
 
 # Example:
 
-```
+```{r, warning=F, message=F}
 library(dplyr)
 
 starwars %>%
@@ -48,7 +84,7 @@ starwars %>%
   summarise(n = n(),
             mass = mean(mass, na.rm = TRUE)) %>%
   filter(n > 1,
-         mass > 50)
+         mass > 80)
 ```
 
 ---
@@ -56,7 +92,7 @@ starwars %>%
 # Why `dplyr`?
 
 - faster than base R
-- simple syntax and beginner-friendly
+- simple/readable syntax
 - function chaining 
 - direct connection to and analysis within external databases
 
@@ -64,49 +100,110 @@ starwars %>%
 
 # `data.table`
 
+.left-column[
+![data.table](datatable.png)
+]
+
+.right-column[
 "`data.table` is an R package that provides an enhanced version of `data.frames`." 
 
 - faster
 - memory efficient 
 - concise syntax
+]
+
+---
+
+# `data.table` syntax
+
+![data.table syntax](data_table_syntax.png)
+
 
 ---
 
 # Example
 
-```
+```{r, warning=F, message=F}
 library(data.table)
 
 starwars_dt <- as.data.table(starwars)
 starwars_dt[, .(n = .N, 
                 mass = mean(mass, na.rm = TRUE)),
-              .(species)][n > 1 & mass > 50]
+              by = .(species)][n > 1 & mass > 80]
 ```
 
 ---
 
 # What is `dtplyr`?
 
-- "`dtplyr` provides a `data.table` backend for `dplyr`." 
-- Same syntax as `dplyr` with the speed of `data.table` (not quite)
+.left-column[
+![rstudio](RStudio.png)
+]
+
+.right-column[
+- "`dtplyr` provides a `data.table` backend for `dplyr`."
+- Authored by Hadley Wickham of RStudio
+- Same syntax as `dplyr` with the speed of `data.table`
+]
+
 
 ---
 
-# Speed Test
 
-Read in data (2 million rows):
-- base `R` (`utils::read.csv("example_dataset.csv")`): 21.65 seconds
-- `tidyverse` (`readr::read_csv("example_dataset.csv")`): 8.835 seconds
-- `data.table` (`data.table::fread("example_dataset.csv")`): 2.279 seconds
+# Prepping table objects
+
+```{r, warning=F, message=F}
+library(dplyr); library(dtplyr); library(data.table)
+
+# create a copy of starwars as a data.table object
+starwars_dt <- as.data.table(starwars)
+# create a lazy_dt object 
+starwars_lazy <- lazy_dt(starwars)
+
+starwars_lazy %>% 
+  group_by(species) %>%
+  summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+  filter(n > 1, mass > 80) %>% as_data_frame()
+```
+
 
 ---
 
+
 # Speed Test
 
-Manipulate:
-- `dplyr` (`df %>% group_by(x) %>% summarise(n = n()) %>% filter(n > 100)`): 0.17 seconds
-- `dtplyr`: 0.11 seconds
-- `data.table` (`dt[, .(n = .N), x][n > 100]`): 0.07 seconds
+
+```{r, message=F, warning=F}
+library(microbenchmark)
+
+microbenchmark("dplyr" = starwars %>% group_by(species) %>%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+                 filter(n > 1, mass > 80), 
+               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
+                                          by = .(species)][n > 1 & mass > 80], 
+               "dtplyr" = starwars_lazy %>% group_by(species) %>%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+                 filter(n > 1, mass > 80) %>% as_data_frame())
+```
+
+
+
+---
+
+
+
+# Speed Test (Cont.)
+
+```{r, message=F, warning=F}
+microbenchmark("dplyr" = starwars %>% group_by(species) %>%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+                 filter(n > 1, mass > 80), 
+               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
+                                          by = .(species)][n > 1 & mass > 80], 
+               "dtplyr" = starwars_lazy %>% group_by(species) %>%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+                 filter(n > 1, mass > 80) %>% as.data.table())
+```
 
 ---
 
@@ -118,9 +215,10 @@ Manipulate:
 
 ---
 
-# References
+# Resources
 
 - https://dtplyr.tidyverse.org/
 - https://dplyr.tidyverse.org/
 - http://zevross.com/blog/2014/03/26/four-reasons-why-you-should-check-out-the-r-package-dplyr-3/
 - https://kykimeng.com/posts/intro-to-data-table/
+- https://towardsdatascience.com/introduction-to-dtplyr-783d89e9ae56

@@ -21,20 +21,57 @@ class: center, middle, inverse, title-slide
 
 
 
+# About me 
+
+.pull-left[
+![Kim and Momo](Kim.jpg)
+]
+
+.pull-right[
+- she/her/hers
+- a Cambodian
+- a Data Scientist
+- loves R, statistics and interactive data visualization
+- Macalester graduate, current UMN graduate student in Statistics
+- co-organize WiMLDS Twin Cities, co-chair MinneAnalytics conferences, R-Ladies regular
+]
+
+
+---
+
 # `dplyr`
 
-- `mutate()` adds new variables that are functions of existing variables
-- `select()` picks variables based on their names
-- `filter()` picks cases based on their values
-- `summarise()` reduces multiple values down to a single summary
-- `arrange()` changes the ordering of the rows
-- `group_by()` performs operations by group
+.left-column[ 
+![dplyr](dplyr.png)
+]
+
+.right-column[ 
+- developed by Hadley Wickham of RStudio + many other contributors
+- "a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges"
+- part of the `tidyverse`
+]
+
+
+
+---
+
+# `dplyr` Verbs 
+
+- **`mutate()`** adds new variables that are functions of existing variables
+- **`select()`** picks variables based on their names
+- **`filter()`** picks cases based on their values
+- **`summarise()`** reduces multiple values down to a single summary
+- **`arrange()`** changes the ordering of the rows
+- **`group_by()`** performs operations by group
+
+
 
 ---
 
 # Example:
 
-```
+
+```r
 library(dplyr)
 
 starwars %&gt;%
@@ -42,7 +79,16 @@ starwars %&gt;%
   summarise(n = n(),
             mass = mean(mass, na.rm = TRUE)) %&gt;%
   filter(n &gt; 1,
-         mass &gt; 50)
+         mass &gt; 80)
+```
+
+```
+## # A tibble: 3 x 3
+##   species      n  mass
+##   &lt;chr&gt;    &lt;int&gt; &lt;dbl&gt;
+## 1 Human       35  82.8
+## 2 Kaminoan     2  88  
+## 3 Wookiee      2 124
 ```
 
 ---
@@ -50,7 +96,7 @@ starwars %&gt;%
 # Why `dplyr`?
 
 - faster than base R
-- simple syntax and beginner-friendly
+- simple/readable syntax
 - function chaining 
 - direct connection to and analysis within external databases
 
@@ -58,49 +104,146 @@ starwars %&gt;%
 
 # `data.table`
 
+.left-column[
+![data.table](datatable.png)
+]
+
+.right-column[
 "`data.table` is an R package that provides an enhanced version of `data.frames`." 
 
 - faster
 - memory efficient 
 - concise syntax
+]
+
+---
+
+# `data.table` syntax
+
+![data.table syntax](data_table_syntax.png)
+
 
 ---
 
 # Example
 
-```
+
+```r
 library(data.table)
 
 starwars_dt &lt;- as.data.table(starwars)
 starwars_dt[, .(n = .N, 
                 mass = mean(mass, na.rm = TRUE)),
-              .(species)][n &gt; 1 &amp; mass &gt; 50]
+              by = .(species)][n &gt; 1 &amp; mass &gt; 80]
+```
+
+```
+##     species  n      mass
+## 1:    Human 35  82.78182
+## 2:  Wookiee  2 124.00000
+## 3: Kaminoan  2  88.00000
 ```
 
 ---
 
 # What is `dtplyr`?
 
-- "`dtplyr` provides a `data.table` backend for `dplyr`." 
-- Same syntax as `dplyr` with the speed of `data.table` (not quite)
+.left-column[
+![rstudio](RStudio.png)
+]
+
+.right-column[
+- "`dtplyr` provides a `data.table` backend for `dplyr`."
+- Authored by Hadley Wickham of RStudio
+- Same syntax as `dplyr` with the speed of `data.table`
+]
+
 
 ---
 
-# Speed Test
 
-Read in data (2 million rows):
-- base `R` (`utils::read.csv("example_dataset.csv")`): 21.65 seconds
-- `tidyverse` (`readr::read_csv("example_dataset.csv")`): 8.835 seconds
-- `data.table` (`data.table::fread("example_dataset.csv")`): 2.279 seconds
+# Prepping table objects
+
+
+```r
+library(dplyr); library(dtplyr); library(data.table)
+
+# create a copy of starwars as a data.table object
+starwars_dt &lt;- as.data.table(starwars)
+# create a lazy_dt object 
+starwars_lazy &lt;- lazy_dt(starwars)
+
+starwars_lazy %&gt;% 
+  group_by(species) %&gt;%
+  summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %&gt;%
+  filter(n &gt; 1, mass &gt; 80) %&gt;% as_data_frame()
+```
+
+```
+## # A tibble: 3 x 3
+##   species      n  mass
+##   &lt;chr&gt;    &lt;int&gt; &lt;dbl&gt;
+## 1 Human       35  82.8
+## 2 Kaminoan     2  88  
+## 3 Wookiee      2 124
+```
+
 
 ---
 
+
 # Speed Test
 
-Manipulate:
-- `dplyr` (`df %&gt;% group_by(x) %&gt;% summarise(n = n()) %&gt;% filter(n &gt; 100)`): 0.17 seconds
-- `dtplyr`: 0.11 seconds
-- `data.table` (`dt[, .(n = .N), x][n &gt; 100]`): 0.07 seconds
+
+
+```r
+library(microbenchmark)
+
+microbenchmark("dplyr" = starwars %&gt;% group_by(species) %&gt;%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %&gt;%
+                 filter(n &gt; 1, mass &gt; 80), 
+               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
+                                          by = .(species)][n &gt; 1 &amp; mass &gt; 80], 
+               "dtplyr" = starwars_lazy %&gt;% group_by(species) %&gt;%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %&gt;%
+                 filter(n &gt; 1, mass &gt; 80) %&gt;% as_data_frame())
+```
+
+```
+## Unit: microseconds
+##        expr      min       lq     mean   median        uq      max neval
+##       dplyr 6918.349 7488.373 8982.264 8590.936 10135.009 14416.32   100
+##  data.table  809.391  961.721 1173.899 1022.480  1183.649  4243.25   100
+##      dtplyr 5016.466 5348.660 6909.627 6539.499  7861.462 11101.48   100
+```
+
+
+
+---
+
+
+
+# Speed Test (Cont.)
+
+
+```r
+microbenchmark("dplyr" = starwars %&gt;% group_by(species) %&gt;%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %&gt;%
+                 filter(n &gt; 1, mass &gt; 80), 
+               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
+                                          by = .(species)][n &gt; 1 &amp; mass &gt; 80], 
+               "dtplyr" = starwars_lazy %&gt;% group_by(species) %&gt;%
+                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %&gt;%
+                 filter(n &gt; 1, mass &gt; 80) %&gt;% as.data.table())
+```
+
+```
+## Unit: microseconds
+##        expr      min       lq     mean   median        uq       max neval
+##       dplyr 6984.608 7436.748 9254.923 8676.334 10412.908 15145.892   100
+##  data.table  835.403  953.986 1167.842 1035.686  1171.992  3005.788   100
+##      dtplyr 2566.860 2775.529 3469.673 2957.662  3815.506  9164.409   100
+```
 
 ---
 
@@ -112,12 +255,13 @@ Manipulate:
 
 ---
 
-# References
+# Resources
 
 - https://dtplyr.tidyverse.org/
 - https://dplyr.tidyverse.org/
 - http://zevross.com/blog/2014/03/26/four-reasons-why-you-should-check-out-the-r-package-dplyr-3/
 - https://kykimeng.com/posts/intro-to-data-table/
+- https://towardsdatascience.com/introduction-to-dtplyr-783d89e9ae56
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
@@ -167,30 +311,20 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 (function() {
   "use strict"
-  /* Replace <script> tags in slides area to make them executable
-   *
-   * Runs after post-processing of markdown source into slides and replaces only
-   * <script>s on the last slide of continued slides using the .has-continuation
-   * class added by xaringan. Finally, any <script>s in the slides area that
-   * aren't executed are commented out.
-   */
+  // Replace <script> tags in slides area to make them executable
   var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+    '.remark-slides-area .remark-slide-container script'
   );
   if (!scripts.length) return;
   for (var i = 0; i < scripts.length; i++) {
     var s = document.createElement('script');
     var code = document.createTextNode(scripts[i].textContent);
     s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
     scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-  var scriptsNotExecuted = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container.has-continuation script'
-  );
-  if (!scriptsNotExecuted.length) return;
-  for (var i = 0; i < scriptsNotExecuted.length; i++) {
-    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
-    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
   }
 })();
 (function() {
