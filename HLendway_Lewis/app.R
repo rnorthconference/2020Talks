@@ -161,14 +161,17 @@ server <- function(input, output, session) {
         
         # get the historical family list from reactiveValues and print it to the console for demo sake
         cur_family <- values$my_family
+        
         print(paste(paste("Current family member list: "), paste(cur_family, collapse = ", ")))
         
         # clean up new family member name and print it to the console for demo sake
         new_member <- str_to_title(input$name_input)
+        
         print(paste("Adding family member:", new_member))
         
         # Update the reactiveValues `my_family` to have the new family member and print it to the console for demo sake
         values$my_family <- c(cur_family, new_member)
+        
         print(paste(paste("Updated family member list:"), paste(values$my_family, collapse = ', ')))
         
     })
