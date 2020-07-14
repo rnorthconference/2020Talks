@@ -6,6 +6,7 @@ library(DT)
 library(babynames)
 library(shinyjs)
 
+# Preprocessing data
 # Create extinct babynames single row dataset for loading speed
 # extinct_babynames_singlerow <-
 #     babynames %>%
@@ -19,6 +20,13 @@ library(shinyjs)
 # 
 # saveRDS(extinct_babynames_singlerow,"HLendway_Lewis/data/extinct_babynames_singlerow.rds")
 # 
+# Create extinct babynames dataset for loading speed
+# extinct_babynames <-
+#     babynames %>%
+#     filter(year <= 1960)
+# saveRDS(extinct_babynames,"HLendway_Lewis/data/extinct_babynames.rds")
+# 
+# Create peak prop data for loading speed
 # peak_prop_year_data <- babynames %>%
 #     group_by(name, sex) %>%
 #     filter(n() > 50) %>%
@@ -29,6 +37,7 @@ library(shinyjs)
 # saveRDS(peak_prop_year_data,"HLendway_Lewis/data/peak_prop_year_data.rds")
 
 extinct_babynames_singlerow <- readRDS(paste0(getwd(),"/data/extinct_babynames_singlerow.rds"))
+extinct_babynames <- readRDS(paste0(getwd(),"/data/extinct_babynames.rds"))
 peak_prop_year_data <- readRDS(paste0(getwd(),"/data/peak_prop_year_data.rds"))
 
 ui <-  dashboardPage(skin = "black",
@@ -94,12 +103,43 @@ ui <-  dashboardPage(skin = "black",
                                              width = 12, 
                                              solidHeader = T,
                                              status = "primary", 
-                                             HTML(("<ul>
-                                             <li>
-                                                <a href='https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html' target='blank'>
-                                                https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html</a>
-                                             </li>
-                                                   </ul>"))
+                                             HTML(("<p>Additional interactive plotting resources:</p>
+                                             <ul>
+                                                 <li>Shiny gallery plot selecting points on a plot: 
+                                                    <a href='https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html' target='blank'>
+                                                    https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html</a>
+                                                 </li>
+                                                 <li>RStudio reference guide for basic plot interaction: 
+                                                    <a href='https://shiny.rstudio.com/articles/plot-interaction.html' target='blank'>
+                                                    https://shiny.rstudio.com/articles/plot-interaction.html</a>
+                                                 </li>
+                                                 <li>RStudio reference guide for selecting rows of data: 
+                                                    <a href='https://shiny.rstudio.com/articles/selecting-rows-of-data.html' target='blank'>
+                                                    https://shiny.rstudio.com/articles/selecting-rows-of-data.html</a>
+                                                 </li>
+                                                 <li>RStudio reference guide for advanced plot interaction: 
+                                                    <a href='https://shiny.rstudio.com/articles/plot-interaction-advanced.html' target='blank'>
+                                                    https://shiny.rstudio.com/articles/plot-interaction-advanced.html</a>
+                                                 </li>
+                                             </ul>
+                                             <p>Additional references for reactiveValues:</p>
+                                             <ul>
+                                                 <li>
+                                                    RStudio reference guide on reactiveValues: 
+                                                    <a href='https://shiny.rstudio.com/reference/shiny/0.11/reactiveValues.html' target='blank'>
+                                                    https://shiny.rstudio.com/reference/shiny/0.11/reactiveValues.html</a>
+                                                 </li>
+                                                 <li>
+                                                    ARDATA - Using reactiveValues with modules: 
+                                                    <a href='https://www.ardata.fr/en/post/2019/04/26/share-reactive-among-shiny-modules/' target='blank'>
+                                                    https://www.ardata.fr/en/post/2019/04/26/share-reactive-among-shiny-modules/</a>
+                                                 </li>
+                                                 <li>
+                                                    Discussion on RStudio Community about reactiveValues in modular apps and using reactiveValues to pass data between modules: 
+                                                    <a href='https://community.rstudio.com/t/best-practices-for-global-external-variables-used-in-a-module/5820/8' target='blank'>
+                                                    https://community.rstudio.com/t/best-practices-for-global-external-variables-used-in-a-module/5820/8</a>
+                                                 </li>
+                                             </ul>"))
                                          )
                                      )
                              )
@@ -110,46 +150,48 @@ ui <-  dashboardPage(skin = "black",
 
 server <- function(input, output, session) {
     
-    values <- reactiveValues(my_family=NULL)
+    # Setting up a reactiveValue `my_family` to hold the list of the family names entered in the app
+    values <- reactiveValues(my_family = NULL)
     
+    # Observe event for adding people to the family list - this will run when the `add_family_button` is clicked
     observeEvent(input$add_family_button, {
         
-        # req(input$name_input)
-        print(paste("Adding family member",input$name_input))
+        # requires a non empty input to execute this code chunk
+        req(input$name_input)
+        
+        # get the historical family list from reactiveValues and print it to the console for demo sake
         cur_family <- values$my_family
+        print(paste(paste("Current family member list: "), paste(cur_family, collapse = ", ")))
         
+        # clean up new family member name and print it to the console for demo sake
         new_member <- str_to_title(input$name_input)
+        print(paste("Adding family member:", new_member))
         
-        if(length(new_member) > 0) {
-            
-            if(!is.null(cur_family)) {
-                cur_family <- c(cur_family,new_member)
-            } else {
-                cur_family <- c(new_member)
-            }
-            
-            # Update the reactiveValue to have the new family member
-            values$my_family <- cur_family
-        }
-        print(paste("Family list",values$my_family))
+        # Update the reactiveValues `my_family` to have the new family member and print it to the console for demo sake
+        values$my_family <- c(cur_family, new_member)
+        print(paste(paste("Updated family member list:"), paste(values$my_family, collapse = ', ')))
+        
     })
     
     output$my_family_name_list <- DT::renderDataTable({
         
+        # get the current family list
         data <- values$my_family %>% 
             as.tibble()
         
+        # only render if there is a name
         validate(
             need(nrow(data) > 0, 'No one has been added to your family yet')
         )
         
+        # join the family names to the baby names data set and show the peak proportion year for each gender
         data %>% 
             rename(name = value)%>% 
-            left_join(babynames) %>% 
+            left_join(babynames, by = "name") %>% 
             group_by(name, sex) %>%
             filter(prop == max(prop)) %>%
             select(name, sex, year) %>%
-            pivot_wider(names_from = sex,values_from = year, names_prefix = "Peak Prop Year - ")
+            pivot_wider(names_from = sex, values_from = year, names_prefix = "Peak Prop Year - ")
     
         
     })
