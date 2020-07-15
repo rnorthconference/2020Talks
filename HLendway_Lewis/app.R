@@ -54,16 +54,38 @@ ui <-  dashboardPage(skin = "black",
                          useShinyjs(),
                          tabItems(
                              tabItem(tabName = "tab_one",
-                                     shiny::column(width = 4,
-                                                   textInput("name_input","First Name: "),
-                                                   actionButton("add_family_button", "Add Family Member")
+                                     fluidRow(
+                                         shiny::column(width = 12,
+                                                       HTML(("<p><b>What are reactiveValues?</b>  <i>ReactiveValues are like a special type of list, 
+                                                             they can store values from reactive objects but the reactiveValues object is not actually 
+                                                             reactive itself.</i></p><br/>"))
+                                         )
                                      ),
-                                     shiny::column(width = 8,
-                                                   box(title = "My Family", width = 12, height = "600px",
-                                                       solidHeader = T,
-                                                       status = "primary", 
-                                                       DT::dataTableOutput("my_family_name_list")
-                                                   )
+                                     fluidRow(
+                                         shiny::column(width = 4,
+                                                       textInput("name_input_reactive","First Name: "),
+                                                       actionButton("add_name", "Add Name")
+                                         ),
+                                         shiny::column(width = 8,
+                                                       box(title = "Name Info", width = 12, height = "600px",
+                                                           solidHeader = T,
+                                                           status = "primary", 
+                                                           DT::dataTableOutput("my_name_table")
+                                                       )
+                                         )
+                                     ),
+                                     fluidRow(
+                                         shiny::column(width = 4,
+                                                       textInput("name_input","First Name: "),
+                                                       actionButton("add_family_button", "Add Family Member")
+                                         ),
+                                         shiny::column(width = 8,
+                                                       box(title = "My Family", width = 12, height = "600px",
+                                                           solidHeader = T,
+                                                           status = "primary", 
+                                                           DT::dataTableOutput("my_family_name_list")
+                                                       )
+                                         )
                                      )
                              ),
                              tabItem(tabName = "tab_two",
@@ -149,6 +171,33 @@ ui <-  dashboardPage(skin = "black",
 
 
 server <- function(input, output, session) {
+
+    # Example of a typical reactive
+    output$my_name_table <- DT::renderDataTable({
+        
+        req(input$add_name)
+        
+        # get the name entered and make a tibble to join to
+        name <- isolate(input$name_input_reactive)
+        data <- name %>% 
+            as.tibble()
+        
+        # only render if there is a name
+        validate(
+            need(nrow(data) > 0, 'No one has been added to your family yet')
+        )
+        
+        # join the name to the baby names data set and show the peak proportion year for each gender
+        data %>% 
+            rename(name = value)%>% 
+            left_join(babynames, by = "name") %>% 
+            group_by(name, sex) %>%
+            filter(prop == max(prop)) %>%
+            select(name, sex, year) %>%
+            pivot_wider(names_from = sex, values_from = year, names_prefix = "Peak Prop Year - ")
+        
+        
+    })
     
     # Setting up a reactiveValue `my_family` to hold the list of the family names entered in the app
     values <- reactiveValues(my_family = NULL)
@@ -159,7 +208,10 @@ server <- function(input, output, session) {
         # requires a non empty input to execute this code chunk
         req(input$name_input)
         
+        print(paste("Add family member button clicked"))
+        
         # get the historical family list from reactiveValues and print it to the console for demo sake
+        # to reference your reacvtiveValues within a reative context, you can use the objectName$var or objectName[[`var`]]
         cur_family <- values$my_family
         
         print(paste(paste("Current family member list: "), paste(cur_family, collapse = ", ")))
@@ -178,7 +230,7 @@ server <- function(input, output, session) {
     
     output$my_family_name_list <- DT::renderDataTable({
         
-        # get the current family list
+        # get the current family list from the reactiveValues
         data <- values$my_family %>% 
             as.tibble()
         
