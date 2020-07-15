@@ -18,7 +18,7 @@ editor_options:
 ```{r xaringan-themer, include = FALSE}
 library(xaringanthemer)
 mono_light(
-  base_color = "#000099",
+  base_color = "#000000",
   header_font_google = google_font("Josefin Sans"),
   text_font_google   = google_font("Montserrat", "500", "500i"),
   code_font_google   = google_font("Droid Mono"),
@@ -37,9 +37,10 @@ mono_light(
 - she/her/hers
 - a Cambodian
 - a Data Scientist
-- loves R, statistics and interactive data visualization
-- Macalester graduate, current UMN graduate student in Statistics
-- co-organize WiMLDS Twin Cities, co-chair MinneAnalytics conferences, R-Ladies regular
+- B.A. from Macalester, current M.S. in statistics candidate at UMN
+
+- \#rstats, \#Rdatatable, \#rshiny
+- \#RLadies, \#WiMLDS, \#MinneWiADS, \#noRth
 ]
 
 
@@ -49,11 +50,14 @@ mono_light(
 
 .left-column[ 
 ![dplyr](dplyr.png)
+![hadley](hadley.jpg)
 ]
 
 .right-column[ 
 - developed by Hadley Wickham of RStudio + many other contributors
+
 - "a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges"
+
 - part of the `tidyverse`
 ]
 
@@ -72,6 +76,10 @@ mono_light(
 
 
 
+```{r, echo=F, out.width="20%", fig.align='center'}
+knitr::include_graphics("dplyr.png")
+```
+
 ---
 
 # Example:
@@ -87,34 +95,52 @@ starwars %>%
          mass > 80)
 ```
 
+
 ---
 
 # Why `dplyr`?
 
+.left-column[ 
+![dplyr](dplyr.png)
+]
+
+.right-column[ 
 - faster than base R
+
 - simple/readable syntax
+
 - function chaining 
+
 - direct connection to and analysis within external databases
+]
+
 
 ---
 
 # `data.table`
 
+"`data.table` is an R package that provides an enhanced version of `data.frames`." 
+
+
 .left-column[
 ![data.table](datatable.png)
+![mattdowle](mattdowle.png)
 ]
 
 .right-column[
-"`data.table` is an R package that provides an enhanced version of `data.frames`." 
 
-- faster
-- memory efficient 
-- concise syntax
+- concise syntax: fast to type, fast to read
+
+- fast speed
+
+- memory efficient
+
+- feature rich (e.g. `fread()`\\`fwrite()`, rolling joins, etc)
 ]
 
----
 
-# `data.table` syntax
+
+---
 
 ![data.table syntax](data_table_syntax.png)
 
@@ -142,28 +168,40 @@ starwars_dt[, .(n = .N,
 
 .right-column[
 - "`dtplyr` provides a `data.table` backend for `dplyr`."
-- Authored by Hadley Wickham of RStudio
+
+- Authored by Lionel Henry and maintained by Hadley Wickham of RStudio
+
 - Same syntax as `dplyr` with the speed of `data.table`
 ]
 
 
 ---
 
-
-# Prepping table objects
+# Working with `dtplyr`
 
 ```{r, warning=F, message=F}
-library(dplyr); library(dtplyr); library(data.table)
+library(dtplyr)
 
-# create a copy of starwars as a data.table object
-starwars_dt <- as.data.table(starwars)
-# create a lazy_dt object 
+# allow copying when mutate() is called
 starwars_lazy <- lazy_dt(starwars)
 
+# allow modify in place; no copy needed 
+# only works if already a data.table object
+starwars_lazy_dt <- lazy_dt(starwars_dt, immutable = FALSE)
+```
+
+`lazy_dt()` object does not evaluate until `as_data_frame()`, `as_tibble()` or `as.data.table()` is called
+
+---
+
+
+# Example
+
+```{r, warning=F, message=F}
 starwars_lazy %>% 
   group_by(species) %>%
   summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
-  filter(n > 1, mass > 80) %>% as_data_frame()
+  filter(n > 1, mass > 80) %>% as_tibble()
 ```
 
 
@@ -176,41 +214,31 @@ starwars_lazy %>%
 ```{r, message=F, warning=F}
 library(microbenchmark)
 
-microbenchmark("dplyr" = starwars %>% group_by(species) %>%
-                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
-                 filter(n > 1, mass > 80), 
-               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
-                                          by = .(species)][n > 1 & mass > 80], 
-               "dtplyr" = starwars_lazy %>% group_by(species) %>%
-                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
-                 filter(n > 1, mass > 80) %>% as_data_frame())
+microbenchmark(
+  "dplyr" = starwars %>% group_by(species) %>%
+    summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+    filter(n > 1, mass > 80),
+  "data.table" = starwars_dt[, .(n = .N, 
+                                 mass = mean(mass, na.rm = TRUE)),
+                             by = .(species)][n > 1 & mass > 80],
+  "dtplyr" = starwars_lazy %>% group_by(species) %>%
+    summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+    filter(n > 1, mass > 80) %>% as_tibble(),
+  "dtplyr - 2" = starwars_lazy_dt %>% group_by(species) %>%
+    summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
+    filter(n > 1, mass > 80) %>% as.data.table()
+)
 ```
 
-
-
----
-
-
-
-# Speed Test (Cont.)
-
-```{r, message=F, warning=F}
-microbenchmark("dplyr" = starwars %>% group_by(species) %>%
-                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
-                 filter(n > 1, mass > 80), 
-               "data.table" = starwars_dt[, .(n = .N, mass = mean(mass, na.rm = TRUE)),
-                                          by = .(species)][n > 1 & mass > 80], 
-               "dtplyr" = starwars_lazy %>% group_by(species) %>%
-                 summarise(n = n(), mass = mean(mass, na.rm = TRUE)) %>%
-                 filter(n > 1, mass > 80) %>% as.data.table())
-```
 
 ---
 
 # Why is `dtplyr` slower than `data.table`?
 
 - time it takes to translate `dplyr` syntax to `data.table`; negligible for large datasets
+
 - some `data.table` expressions have no direct `dplyr` equivalent (e.g. rolling join)
+
 - `mutate()` makes a copy before modifying while `data.table` does not and `data.table` sub-assigns by reference
 
 ---
@@ -221,4 +249,5 @@ microbenchmark("dplyr" = starwars %>% group_by(species) %>%
 - https://dplyr.tidyverse.org/
 - http://zevross.com/blog/2014/03/26/four-reasons-why-you-should-check-out-the-r-package-dplyr-3/
 - https://kykimeng.com/posts/intro-to-data-table/
+- https://rdatatable.gitlab.io/data.table/
 - https://towardsdatascience.com/introduction-to-dtplyr-783d89e9ae56
