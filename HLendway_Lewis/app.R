@@ -180,6 +180,7 @@ server <- function(input, output, session) {
         # get the name entered and make a tibble to join to
         name <- isolate(input$name_input_reactive)
         data <- name %>% 
+            str_to_title() %>% 
             as.tibble()
         
         # only render if there is a name
