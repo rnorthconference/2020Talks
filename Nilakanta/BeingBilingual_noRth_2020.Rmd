@@ -1,0 +1,224 @@
+---
+title: "Being Bilingual: Coding in Both R and Python"
+subtitle: "noRth 2020"
+author: "Haema Nilakanta, PhD"
+date: "July 14, 2020"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+\begin{center}
+\includegraphics[height=0.2\textwidth]{R_img.png} \includegraphics[height=0.2\textwidth]{Python_img.png}
+\end{center}
+
+- The ongoing question: R or Python? \medskip \pause
+
+- Why choose only one? Why not wrap one in the other? \medskip \pause
+
+- Build more seamless data science pipelines \& leverage strengths of both \medskip \pause
+
+- \textcolor{blue}{Objective}: introduce how to work with R and Python in the R interface using the \texttt{reticulate} package \medskip
+
+- I will assume minimal knowledge of Python
+
+## library(reticulate)
+
+- First author and maintainer Kevin Ushey, RStudio \medskip
+
+- Can use Python already on your system, a virtual environment, specific versions, or  \href{https://docs.conda.io/en/latest/miniconda.html}{\underline{Miniconda}} \medskip
+
+- Works with Python versions $\ge 2.7$ \medskip 
+
+- "The package enables you to \textit{reticulate} Python code into R, creating a new breed of project that weaves together the two languages." \medskip
+
+## Setting up Python
+\begin{itemize}
+\item Some systems come downloaded with Python \medskip
+\item If not, many ways to download (one option: \href{https://www.anaconda.com/products/individual}{\underline{Anaconda}})
+\medskip
+\item Anaconda loads Python and some well known packages vs. Miniconda which loads Python and tools to install more packages (lighter weight) \medskip
+\item First time installing and loading library, option to install Miniconda \medskip
+  \begin{itemize}
+  \item Happens if you don't specify Python source explicitly to use \smallskip
+  \item Creates an \texttt{r-reticulate} Conda environment with Python 3.6.10 with numpy version 1.18.15
+  \end{itemize}
+\end{itemize}
+
+## Install package
+```{r install_reticulate_library, eval=FALSE, include=TRUE, message=TRUE, echo=TRUE}
+# Install the package
+install.packages("reticulate")
+```
+
+```{r load_reticulate_library, echo=TRUE}
+# Load the library
+library(reticulate)
+
+# and check the package version
+packageVersion("reticulate")
+```
+
+## Check python version
+```{r check_pyconfig, results = 'asis', echo=TRUE, eval=FALSE}
+# Check what Python source it's using
+py_config()
+```
+
+\tiny
+\begin{verbatim}
+python:         /Users/haema/Library/r-miniconda/envs/r-reticulate/bin/python
+libpython:      /Users/haema/Library/r-miniconda/envs/r-reticulate/lib/libpython3.6m.dylib
+pythonhome:     /Users/haema/Library/r-miniconda/envs/r-reticulate:/Users/haema/Library/r-miniconda/envs/r-reticulate
+version:        3.6.10 | packaged by conda-forge | (default, Apr 24 2020, 16:27:41)  [GCC Clang 9.0.1 ]
+numpy:          /Users/haema/Library/r-miniconda/envs/r-reticulate/lib/python3.6/site-packages/numpy
+numpy_version:  1.18.5
+\end{verbatim}
+
+## Translation "dictionary"
+\begin{table}
+  \centering
+\begin{tabular}{lll} \hline
+Purpose & R & Python  \\ \hline
+Load packages & \texttt{library(name)} & \texttt{import name}\\ 
+Data wrangling & \texttt{base} or \texttt{dplyr} & \texttt{pandas}\\ 
+Computations & \texttt{base} & \texttt{numpy}\\ 
+Graphics & \texttt{ggplot2} & \texttt{matplotlib}\\ 
+... & ... & ...\\ \hline
+\end{tabular}
+\end{table}
+
+## Interacting with Python
+\begin{enumerate}
+  \item Interactive Python (REPL) \medskip
+  \item Import Python packages \medskip
+  \item Load external Python scripts \medskip
+\end{enumerate}
+
+## Interacting with Python
+\begin{enumerate}
+  \item \textcolor{blue}{Interactive Python (REPL)} \medskip
+  \item Import Python packages \medskip
+  \item Load external Python scripts \medskip
+\end{enumerate}
+
+## Interactive Python
+Can work with Python in the console itself (REPL = Read–Eval–Print Loop)
+```{r interactive_python, eval=FALSE, include=TRUE, message=TRUE, echo=TRUE}
+# Start an interactive session
+repl_python() 
+Python 3.6.10 
+(/Users/haema/Library/r-miniconda/envs/r-reticulate/
+    bin/python)
+Reticulate 1.16 REPL -- A Python interpreter in R.
+>>> 
+```
+
+* The ">>>" indicates Python environment \smallskip
+* To exit session, type \texttt{exit} and hit enter \smallskip
+* Whatever is defined in this session will remain in Python session (coding version of Vegas)
+
+## Interacting with Python
+\begin{enumerate}
+  \item Interactive Python (REPL) \medskip
+  \item \textcolor{blue}{Import Python packages} \medskip
+  \item Load external Python scripts \medskip
+\end{enumerate}
+
+## Import packages 
+As with \texttt{R}, you may need functions available in other packages. Sometimes these packages are already installed (e.g., numpy and os)
+```{r load_os, echo=TRUE}
+# Load the os (operating system) package
+os = import("os")
+
+# print current working directory. 
+# In python keep () to run the function
+os$getcwd()
+
+# notice how it matches
+getwd()
+```
+
+## Import packages 
+For packages that are not pre-installed, specify the environment you want to install it to
+```{r conda_install, eval=FALSE, echo=TRUE, include=TRUE}
+# scipy popular Python scientific computing package
+conda_install("r-reticulate", "scipy")
+
+# another approach 
+# sklearn holds many machine learning functions
+py_install('sklearn', pip = TRUE)
+
+# tensorflow popular package for deep-learning modules
+# reticulate designed to install package from CRAN
+install.packages("tensorflow")
+```
+
+Then we can import the packages as before
+```{r load_scipy, echo=TRUE, include=TRUE}
+scipy = import("scipy")
+library(tensorflow)
+```
+
+## Interacting with Python
+\begin{enumerate}
+  \item Interactive Python (REPL) \medskip
+  \item Import Python packages \medskip
+  \item \textcolor{blue}{Load external Python scripts} \medskip
+\end{enumerate}
+
+## Read in Python files
+Similarly, we can read in a Python file (e.g., load a function). Consider the following function stored in logitfunc.py to compute $logit(x) = \frac{e^x}{1+e^x}$. 
+
+```{python logitfunc, echo=TRUE, eval=FALSE}
+import numpy as np
+
+def logit_py(x):
+  return np.exp(x)/(1+np.exp(x))
+```
+
+Load file with 
+```{r load_logitfunc, echo=TRUE}
+source_python("logitfunc.py")
+logit_py(0.5)
+```
+
+## Interacting with Python
+\begin{enumerate}
+  \item Interactive Python (REPL) \medskip
+  \item Import Python packages \medskip
+  \item Load external Python scripts \medskip
+\end{enumerate}
+
+## Example with Natural Language Processing (NLP)
+
+Run through example if time permits
+
+## Conclusion
+\begin{itemize}
+  \item Work with Python in R using library(reticulate) \medskip
+  \item Build more seamless pipelines and leverage both systems \medskip
+  \item Some more resources (clickable links): \smallskip
+    \begin{itemize}
+    \item \href{https://rstudio.github.io/reticulate/}{\underline{Rstudio Reticulate}} \smallskip
+    \item \href{https://cran.r-project.org/web/packages/reticulate/index.html}{\underline{CRAN reticulate}} \smallskip
+    \item \href{https://docs.rstudio.com/tutorials/user/using-python-with-rstudio-and-reticulate/}{\underline{Tutorial Rshiny + Python (virtual env)}}
+  \end{itemize}
+\end{itemize}
+
+##
+
+\centering
+\Huge
+Thank You! 
+ \bigskip
+\normalsize
+\begin{itemize}
+  \item[] Contact information:
+  \item[] Haema Nilakanta
+  \item[] nilak008@umn.edu
+  \item[] https://haemanilakanta.github.io/
+\end{itemize}
