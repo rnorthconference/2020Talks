@@ -40,3 +40,10 @@ install.packages( 'tidymodels' ) #Say yes to any package requiring compilation i
 devtools::install_github('rmcelreath/rethinking') #won't work in R 4.0.0; update to R 4.0.2
 devtools::install_github('rstudio/bootstraplib') #Choose 1 to update all packages if asked
 ```
+# noRth Playlist
+https://www.youtube.com/playlist?list=PLZJbLCOGgmFHER8pPVj40Bta_rGCNPr1q
+
+# noRth 2021
+Contact us at rnorthconf@gmail.com if you are interested in giving a talk or volunteering as part of the organization committee!
+
+
