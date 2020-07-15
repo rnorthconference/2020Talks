@@ -3320,7 +3320,7 @@ agegr &lt;- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))</pre>
 ## (70,80]         3     4.0        100.0
 ##   Total        75   100.0        100.0</pre>
 
-</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression">
+</article></slide><slide class=""><hgroup><h2>epiDisplay</h2></hgroup><article  id="epidisplay-4">
 
 <pre class = 'prettyprint lang-r'>cc(ill, chocolate)</pre>
 
@@ -3338,7 +3338,7 @@ agegr &lt;- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))</pre>
 ## Chi-squared = 3.14, 1 d.f., P value = 0.076
 ## Fisher&#39;s exact test (2-sided) P value = 0.089</pre>
 
-</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression-1">
+</article></slide><slide class=""><hgroup><h2>epiDisplay</h2></hgroup><article  id="epidisplay-5">
 
 <pre class = 'prettyprint lang-r'>cc(ill, chocolate, design=&quot;case-control&quot;)</pre>
 
@@ -3356,7 +3356,7 @@ agegr &lt;- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))</pre>
 ## Chi-squared = 3.14, 1 d.f., P value = 0.076
 ## Fisher&#39;s exact test (2-sided) P value = 0.089</pre>
 
-</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression-2">
+</article></slide><slide class=""><hgroup><h2>Odds Ratio</h2></hgroup><article  id="odds-ratio">
 
 <pre class = 'prettyprint lang-r'>cs(ill, chocolate) # The outcome variable should come first.</pre>
 
@@ -3384,7 +3384,7 @@ agegr &lt;- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))</pre>
 #     TRUE     20   25
 #</pre>
 
-</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression-3">
+</article></slide><slide class=""><hgroup><h2>Odds Ratio</h2></hgroup><article  id="odds-ratio-1">
 
 <pre class = 'prettyprint lang-r'>graph.casecontrol(25, 22, 20, 7)</pre>
 
@@ -3392,7 +3392,20 @@ agegr &lt;- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))</pre>
 
 <pre class = 'prettyprint lang-r'>#cci(25, 22, 20, 7)</pre>
 
-</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression-4">
+</article></slide><slide class=""><hgroup><h2>Odds Ratio</h2></hgroup><article  id="odds-ratio-2">
+
+<pre >           Exposure
+Outcome        Non-exposed Exposed Total
+  Non-diseased           7      22    29
+  Diseased              20      25    45
+  Total                 27      47    74
+
+OR =  0.4 
+95% CI =  0.14, 1.12  
+Chi-squared = 3.14, 1 d.f., P value = 0.076
+Fisher&#39;s exact test (2-sided) P value = 0.089 </pre>
+
+</article></slide><slide class=""><hgroup><h2>Hazard Regression</h2></hgroup><article  id="hazard-regression">
 
 <pre class = 'prettyprint lang-r'>graph.prospective(25, 22, 20, 7)</pre>
 

@@ -109,17 +109,17 @@ tab1(agegr, col=c("red","yellow","blue")) # Colours recycled
 tab1(agegr, horiz=TRUE)
 ```
 
-## Hazard Regression
+## epiDisplay
 ```{r, echo= TRUE}
 cc(ill, chocolate)
 ```
 
-## Hazard Regression
+## epiDisplay
 ```{r, echo= TRUE}
 cc(ill, chocolate, design="case-control")
 ```
 
-## Hazard Regression
+## Odds Ratio
 ```{r, echo= TRUE}
 cs(ill, chocolate) # The outcome variable should come first.
 #    For the following table
@@ -130,10 +130,24 @@ cs(ill, chocolate) # The outcome variable should come first.
 #
 ```
 
-## Hazard Regression
+## Odds Ratio
 ```{r, echo= TRUE}
 graph.casecontrol(25, 22, 20, 7)
 #cci(25, 22, 20, 7)
+```
+
+## Odds Ratio
+```       
+           Exposure
+Outcome        Non-exposed Exposed Total
+  Non-diseased           7      22    29
+  Diseased              20      25    45
+  Total                 27      47    74
+
+OR =  0.4 
+95% CI =  0.14, 1.12  
+Chi-squared = 3.14, 1 d.f., P value = 0.076
+Fisher's exact test (2-sided) P value = 0.089 
 ```
 
 ## Hazard Regression
