@@ -5,20 +5,24 @@ date: "7/15/2020"
 output: ioslides_presentation
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Goals
-- Describe advantages for adopting R statistical software as a social science
+- Describe advantages for adopting R statistical software as a social scientist
 - Explore data science using two packages: `epiDisplay` & `lavaan`
 
+
 ## My Journey with R
+- PhD. in Family Social Science (2018)
 - Introduced to R in introductory statistical classes at the University of Minnesota
     - About 18 months of R
     - began and ended with `base` package
 - Research work at Program in Human Sexuality
-    - SOTIPS project needed Cox Hazard Regression 
+    - Sex Offender Treatmeint Intervention and Progress Scale (SOTIPS) project 
+    - Recidivism tool created by using Cox Hazard Regression
     - Structural Equation Modeling (SEM)
 
 ## Things that helped
@@ -35,26 +39,28 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Why use R?
 - R is free
 
-Package    Stata/SE   SPSS v26  SAS     Matlab
---------   --------   --------  ------  -------
-Student    $94        $35       $0      $99
-Business   $765       $1,290    $8,700  $2,150
----------  --------   --------  ------  -------
+Package          Stata/SE           SPSS v26     SAS
+--------   --------------   ----------------  ------
+Student        94               34.95
+Business     765             1,290             8,700
+---------  --------------   ----------------  ------
 
 ## Why use R?
-- R is becoming popular and is well supported
-![](img/Image1.png){width=60%}
+- R is becoming popular
+
+![](img/Image1.png){width=55%}
+
 
 ## Why use R?
 - Advanced statistics (e.g., SEM)
 - Better graphics
 
 ## Graphics
-![SPSS Hazard Regression](img/Image2.png)
+![SPSS Hazard Regression](img/Image2.png){width=60%}
 
 
 ## Graphics
-![R Hazard Regression](img/Image3.png)
+![R Hazard Regression](img/Image3.png){width=60%}
 
 ## R package: epiDisplay
 - [Virasakdi Chongsuvivatwong, 2018](https://cran.r-project.org/web/packages/epiDisplay/epiDisplay.pdf)
@@ -65,11 +71,11 @@ Business   $765       $1,290    $8,700  $2,150
 ```{r, echo= TRUE, message=FALSE}
 library(epiDisplay)
 library(lavaan)
+library(png)
 data(Oswego)
 .data <- Oswego
 attach(.data)
 agegr <- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))
-
 ```
 
 <!-- ## epiDisplay -->
@@ -91,6 +97,7 @@ agegr <- cut(age, breaks=c(0,10,20,30,40,50,60,70,80))
 ```{r, Oswegoage, echo= TRUE, message=FALSE}
 tab1(agegr, col="grey") # graphic output from older versions of 'tab1'
 ```
+
 
 ## epiDisplay
 ```{r, Oswego2, echo= TRUE, message=FALSE}
@@ -115,7 +122,6 @@ cc(ill, chocolate, design="case-control")
 ## Hazard Regression
 ```{r, echo= TRUE}
 cs(ill, chocolate) # The outcome variable should come first.
-
 #    For the following table
 #          chocolate
 #    ill     FALSE TRUE
@@ -142,7 +148,18 @@ graph.prospective(25, 22, 20, 7)
 # cs(ill, agegr, main="Risk ratio by age group", xlab="Age (years)")
 ```
 
-## Structural Equation Modeling (SEM)
+## epiDisplay: Output
+```{r, mtcars, echo= TRUE}
+model1 <- glm(am ~ cyl + disp, data = mtcars, family = binomial)
+```
+
+## epiDisplay: Output
+```{r, echo= TRUE}
+
+logistic.display(model1, crude = TRUE, crude.p.value = TRUE, decimal = 3)
+```
+
+## Structural Equation Modeling
 - Allows for testing indirect relationships
 - Path models
 - Factor analysis
@@ -151,7 +168,7 @@ graph.prospective(25, 22, 20, 7)
 - Black box regarding estimation
 - Missing values in Stata
 
-## Confirmatory Factor Analysis (CFA) example
+## CFA example
 ```{r, PoliticalDemocracy, echo= TRUE}
  model <- '
   # measurement model
@@ -166,7 +183,8 @@ graph.prospective(25, 22, 20, 7)
     y2 ~~ y4 + y6
     y3 ~~ y7
     y4 ~~ y8
-    y6 ~~ y8 '
+    y6 ~~ y8
+'
 
 fit <- sem(model, data=PoliticalDemocracy)
 ```
@@ -189,13 +207,16 @@ summary(fit, standardized=TRUE)
     - Structural equation modeling (SEM) allows researchers to test relationships between observed and unobserved (i.e., latent) variables in order to test a theoretical model (Schumaker & Lomax, 2010).
     
 ## Path Analysis
-
-![ ](img/Image4.png){width=90%}
-
-## Using R as a Researcher
-
-![It's not like riding a bike . . . ](img/Image6.png){width=90%}
+```{r, out.width = "600px"}
+knitr::include_graphics("img/Image4.png")
+```
 
 ## Using R as a Researcher
+```{r, out.width = "600px"}
+knitr::include_graphics("img/Image6.png")
+```
 
-![It's more like playing tennis](img/Image5.png){width=60%}
+## Using R as a Researcher
+```{r, out.width = "600px"}
+knitr::include_graphics("img/Image5.png")
+```
