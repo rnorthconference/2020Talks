@@ -39,7 +39,6 @@ mono_light(
 - a Data Scientist
 - B.A. from Macalester, current M.S. in statistics candidate at UMN
 
-- \#rstats, \#Rdatatable, \#rshiny
 - \#RLadies, \#WiMLDS, \#MinneWiADS, \#noRth
 ]
 
