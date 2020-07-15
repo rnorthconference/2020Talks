@@ -35,6 +35,7 @@ library(shinyjs)
 #     sample_n(50)
 # 
 # saveRDS(peak_prop_year_data,"HLendway_Lewis/data/peak_prop_year_data.rds")
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 extinct_babynames_singlerow <- readRDS(paste0(getwd(),"/data/extinct_babynames_singlerow.rds"))
 extinct_babynames <- readRDS(paste0(getwd(),"/data/extinct_babynames.rds"))
@@ -45,10 +46,14 @@ ui <-  dashboardPage(skin = "black",
                          title="NoRth App"
                      ),
                      dashboardSidebar(sidebarMenu(id = "sidebar",
-                                                  menuItem("Reactive Values", tabName = "tab_one", icon = icon("fast-forward")),
-                                                  menuItem("Datatable Selection", tabName = "tab_two", icon = icon("table")),
-                                                  menuItem("Plot Highlighting", tabName = "tab_three", icon = icon("area-chart")),
-                                                  menuItem("Additional Examples", tabName = "tab_four", icon = icon("shopping-basket"))
+                                                  menuItem("Reactive Values", tabName = "tab_one", 
+                                                           icon = icon("fast-forward")),
+                                                  menuItem("Datatable Selection", tabName = "tab_two",
+                                                           icon = icon("table")),
+                                                  menuItem("Plot Highlighting", tabName = "tab_three", 
+                                                           icon = icon("area-chart")),
+                                                  menuItem("Additional Examples", tabName = "tab_four",
+                                                           icon = icon("shopping-basket"))
                      )),
                      dashboardBody(
                          useShinyjs(),
@@ -56,8 +61,10 @@ ui <-  dashboardPage(skin = "black",
                              tabItem(tabName = "tab_one",
                                      fluidRow(
                                          shiny::column(width = 12,
-                                                       HTML(("<p><b>What are reactiveValues?</b>  <i>ReactiveValues are like a special type of list, 
-                                                             they can store values from reactive objects but the reactiveValues object is not actually 
+                                                       HTML(("<p><b>What are reactiveValues?</b> 
+                                                       <i>ReactiveValues are like a special type of list, 
+                                                         they can store values from reactive objects
+                                                         but the reactiveValues object is not actually 
                                                              reactive itself.</i></p><br/>"))
                                          )
                                      ),
@@ -89,6 +96,20 @@ ui <-  dashboardPage(skin = "black",
                                      )
                              ),
                              tabItem(tabName = "tab_two",
+                                     fluidRow(
+                                         shiny::column(width = 12,
+                                                       tags$b("Benefits of combining 
+                                                              the functionality of Shiny wih Datatables:"), 
+                                                       tags$ul(
+                                                           tags$li("Filtering, ordering, 
+                                                                   etc (basic datatable functions)"), 
+                                                           tags$li("Selecting rows, columns, 
+                                                                   or cells to use elsewhere in the app (example)."), 
+                                                           tags$li("Entering or changing data in real-time")
+                                                       ), #end ul list 
+                                                       tags$br()
+                                         ) #close column
+                                     ), #close fluid row
                                      shiny::column(width = 4,
                                                    box(title = "Extinct Baby Names (1880-1960)", width = 12, 
                                                        solidHeader = T,
@@ -100,14 +121,35 @@ ui <-  dashboardPage(skin = "black",
                                      )
                              ),
                              tabItem(tabName = "tab_three",
+                                     fluidRow(
+                                         shiny::column(width = 12,
+                                                       tags$b("Interactive selection 
+                                                              of data from a ggplot."),
+                                                       "Here we demonstrate how a ggplot can 
+                                                       be interactive when used in a Shiny app.", 
+                                                       tags$br(), 
+                                                       "Shiny", tags$em("interactive"), "options for ggplot:", 
+                                                       tags$br(), 
+                                                       tags$ul(
+                                                           tags$li(tags$em("click")), 
+                                                           tags$li(tags$em("dbclick")), 
+                                                           tags$li(tags$em("hover")), 
+                                                           tags$li(tags$em("brush"))
+                                                       ), #end ul list 
+                                                       tags$br()
+                                         ) #close column
+                                     ), 
                                      shiny::column(width = 6, box(width = 12, 
                                                                   plotOutput("peak.scatter.plot",
+                                         # click and brush will allow us to select points 
+                                         # from the seeminlgy static ggplot
                                                                              click = "peak.scatter.plot_click",
                                                                              brush = brushOpts(
                                                                                  id = "peak.scatter.plot_brush"
                                                                                  )))),
                                      shiny::column(width = 6, box(width = 12,
                                                                   plotOutput("peak.time.series"))),
+                                     # Here we will output the data associated with click and brush. 
                                      fluidRow(
                                          column(width = 6,
                                                 h4("Points near click"),
@@ -127,7 +169,7 @@ ui <-  dashboardPage(skin = "black",
                                              status = "primary", 
                                              HTML(("<p>Additional interactive plotting resources:</p>
                                              <ul>
-                                                 <li>Shiny gallery plot selecting points on a plot: 
+                                                 <li>Shiny gallery plot selecting points on a plot:
                                                     <a href='https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html' target='blank'>
                                                     https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html</a>
                                                  </li>
@@ -252,9 +294,11 @@ server <- function(input, output, session) {
     })
     
     output$babynames.dt <- DT::renderDT({
-        
+        #using the pre-processed extinct babynames data, where a row represents the most recent year the 
+        #name was used 
         extinct_babynames_singlerow %>%
             select(name, sex, `Most Recent Year` = year, n) %>%
+            # add options to the datatable 
             datatable(options = list(paging = FALSE,
                                      scrollY = "400px"),
                       rownames = F,
@@ -264,18 +308,22 @@ server <- function(input, output, session) {
     
     
     selected_data_to_plot <- reactive({
+        #_rows_selected and _row_last_clicked among others are suffixes that return indices from the 
+        # datatable. 
         req(input$babynames.dt_rows_selected)
         req(input$babynames.dt_row_last_clicked)
         
-        print(paste("babyname indexes selected", input$babynames.dt_rows_selected))
+        print(paste("babyname indices selected from DT", input$babynames.dt_rows_selected))
         
         selected_names <- extinct_babynames_singlerow$name[input$babynames.dt_rows_selected]
+        # we would like to highlight the name selected last
         last_clicked_name <- extinct_babynames_singlerow$name[input$babynames.dt_row_last_clicked]
         
         print("babynames selected:") %>%
             print(str(selected_names))
         
-        
+        #subsetting the complete extinct_babynames data set to get the data for a
+        # time series plot of each selected names' popularity
         selected_data_to_plot <- extinct_babynames %>%
             filter(name %in% selected_names) %>%
             mutate(last_selected = if_else(
@@ -290,40 +338,48 @@ server <- function(input, output, session) {
     
     output$dt_select_plot <- renderPlot({
         
+        #use selected names and data to create time series ggplot
         ggplot(selected_data_to_plot()) +
             geom_line(aes(x = year, y = prop, color = name, linetype = sex,
                           size = last_selected)) +
             scale_size_manual(values = c("Last Selected" = 2,
                                          "Previously Selected" = 0.5)) +
             scale_x_continuous(breaks = seq(1880, 1960, 10)) +
-            labs(title = "Annual Proportion of Babies with Selected Names",
-                 x = "Year", y = "Proportion")
+            scale_y_continuous(labels = scales::percent) +
+            scale_color_manual(values = cbbPalette) +
+            labs(title = "Annual Popularity of Selected Names",
+                 x = "Year", y = "Percentage") + 
+            theme_bw()
         
     })
     
+    # begin plot highlighting tab server side ----
     output$peak.scatter.plot <- renderPlot({
-        print("peak year scatterplot")
+        print("peak year scatterplot data:")
         print(peak_prop_year_data %>% head())
         
+        # plot the pre-processed peak year data
+        # this is plot that we will be selecting data from
+        # notice, that this ggplot code does not differ from your "typical" ggplot
         peak_prop_year_data %>%
             ggplot(aes(x = year, y = prop, color = name)) +
             geom_point() +
+            scale_x_continuous(breaks = seq(1880,2020, 10)) +
+            scale_y_continuous(labels = scales::percent) +
+            labs(x = "Year", y = "Percentage", title = "Peak Popularity Year") + 
+            theme_bw() + 
             theme(legend.position = "none")
         
     })
     
-    output$click_info <- renderPrint({
+    # to better understand what is happening, we output the underlying information for 
+    # clicked and brushed points 
+    # 
+    # Notice: _click and _brush as the suffixes for the peak.scatter.plot
+    # now save the 
+    click_data <- reactive(
         # Because it's a ggplot2, we don't need to supply xvar or yvar; if this
         # were a base graphics plot, we'd need those.
-        print(nearPoints(peak_prop_year_data, input$peak.scatter.plot_click, addDist = TRUE))
-    })
-    
-    output$brush_info <- renderPrint({
-        
-        brushedPoints(peak_prop_year_data, input$peak.scatter.plot_brush)
-    })
-    
-    click_data <- reactive(
         nearPoints(peak_prop_year_data, input$peak.scatter.plot_click, addDist = TRUE)
     )
     
@@ -331,6 +387,15 @@ server <- function(input, output, session) {
         brushedPoints(peak_prop_year_data, input$peak.scatter.plot_brush)
     )
     
+    output$click_info <- renderPrint({
+       click_data()
+    })
+    
+    output$brush_info <- renderPrint({
+        brush_data()
+    })
+    
+    # the plot resulting from the selected points: 
     output$peak.time.series <- renderPlot({
         
         shiny::validate(need(nrow(click_data()) > 0 | nrow(brush_data()) > 0,
@@ -340,16 +405,23 @@ server <- function(input, output, session) {
             babynames %>%
                 filter(name %in% click_data()$name) %>%
                 ggplot(aes(x = year, y = prop, color = name, linetype = sex)) +
-                geom_line() +
-                scale_x_continuous(breaks = seq(1880, 2020, 10), limits = c(1880, 2020))
+                geom_line(size = 1.3) +
+                scale_y_continuous(labels = scales::percent) +
+                scale_color_manual(values = cbbPalette) +
+                scale_x_continuous(breaks = seq(1880, 2020, 10), limits = c(1880, 2020)) +
+                labs(x = "Year", y = "Percentage", title = "Annual Popularity of Selected Names") +  
+                theme_bw() 
             
         } else {
-            # if(nrow(brush_data() != 0)) {
             babynames %>%
                 filter(name %in% brush_data()$name) %>%
                 ggplot(aes(x = year, y = prop, color = name, linetype = sex)) +
-                geom_line() +
-                scale_x_continuous(breaks = seq(1880, 2020, 10), limits = c(1880, 2020))
+                geom_line(size = 1.3) +
+                scale_y_continuous(labels = scales::percent) +
+                scale_color_manual(values = cbbPalette) +
+                scale_x_continuous(breaks = seq(1880, 2020, 10), limits = c(1880, 2020)) +
+                labs(x = "Year", y = "Percentage", title = "Annual Popularity of Selected Names") + 
+                theme_bw() 
             #  } else NULL
         }
         
